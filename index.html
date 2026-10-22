@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>同一間教室</title>
+<meta name="description" content="2D 校園體驗遊戲：換成班上某位同學的腦袋過一天，再看看環境調整後，同一天會變得怎樣。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Iansui&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<style>
+:root{
+  --bg:#f5efe4;--paper:#fffdf8;--ink:#2b2a33;--mute:#6d6a75;--line:rgba(43,42,51,.14);
+  --pr:#2f8f9d;--pr-soft:#dff0f1;--kq:#d9694b;--kq-soft:#fbe5dc;
+  --accent:var(--pr);--soft:var(--pr-soft);
+  --warn:#c8432f;--ok:#2f7d55;--gold:#f2b53a;
+  --display:"Iansui","Kaiti TC","DFKai-SB",serif;
+  --body:"Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif;
+  color-scheme:light;
+}
+body[data-lv="kq"]{--accent:var(--kq);--soft:var(--kq-soft)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.7 var(--body);-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.scr{position:fixed;inset:0;overflow-y:auto;padding:max(20px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom))}
+.wrap{max-width:880px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);font-weight:400;line-height:1.3;margin:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:10px 22px;border-radius:14px;border:0;background:var(--accent);color:#fff;font-weight:700;font-size:17px;box-shadow:0 3px 0 rgba(0,0,0,.18)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+.btn.alt{background:var(--paper);color:var(--ink);border:2px solid var(--line);box-shadow:none}
+.btn.small{min-height:44px;padding:6px 14px;font-size:15px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+
+/* start */
+#start .hero{text-align:center;padding:24px 0 8px}
+#start .hero h1{font-size:clamp(44px,9vw,76px);letter-spacing:.08em}
+#start .hero p{margin:6px 0 0;color:var(--mute);font-size:18px}
+.chars{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:24px 0}
+.char{background:var(--paper);border-radius:20px;padding:20px;border:2px solid var(--line);display:grid;gap:10px;text-align:left}
+.char .face{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:30px;color:#fff;font-family:var(--display)}
+.char h2{font-size:28px}
+.char .sub{color:var(--mute);margin:0}
+.char .lvl{font-weight:700}
+.badges{display:flex;gap:8px;flex-wrap:wrap}
+.badge{font-size:13px;padding:2px 10px;border-radius:999px;background:#ece7dd;color:var(--mute)}
+.badge.on{background:var(--ok);color:#fff}
+.note{background:var(--paper);border-radius:14px;padding:12px 16px;color:var(--mute);font-size:15px;border:1px dashed var(--line)}
+.foot{margin-top:28px;text-align:center;font-size:12px;color:var(--mute);line-height:1.8}
+
+/* warm-up */
+.board{background:#2f4f43;color:#f4f1e6;border-radius:16px;padding:28px 20px;text-align:center;font-family:var(--display);font-size:clamp(26px,5vw,38px);border:10px solid #8a6a48;margin:20px 0}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tabs button{min-height:52px;border-radius:12px;border:2px solid var(--line);background:var(--paper);font-weight:700}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.cloud{position:relative;margin:22px 0;background:#fff;border:2px dashed var(--c,#8a96a0);border-radius:26px;padding:18px 20px;font-size:18px;min-height:96px}
+.cloud::before{content:"💭";position:absolute;top:-18px;left:18px;font-size:26px}
+.cloud p{margin:0 0 6px}
+
+/* intro / phase cards */
+.card{background:var(--paper);border-radius:20px;padding:24px 20px;border:2px solid var(--line);margin:20px 0}
+.card h2{font-size:32px;margin-bottom:8px}
+.card ul{margin:8px 0;padding-left:22px}
+.key{display:inline-block;min-width:26px;text-align:center;font-size:13px;font-weight:700;border:1px solid var(--line);border-bottom-width:3px;border-radius:6px;padding:0 6px;background:#fff}
+.meterDemo{display:flex;align-items:center;gap:10px;margin:8px 0}
+
+/* game */
+#game{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;background:#c9c2b4}
+.hud{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:max(8px,env(safe-area-inset-top)) 12px 8px;background:var(--paper);border-bottom:2px solid var(--line);z-index:3}
+.who{display:flex;align-items:center;gap:8px;font-weight:700}
+.who i{width:14px;height:14px;border-radius:50%;background:var(--accent)}
+.clock{color:var(--mute);font-size:14px}
+.meter{display:flex;align-items:center;gap:8px;flex:1 1 220px;min-width:200px}
+.meter b{font-size:14px;white-space:nowrap}
+.bar{flex:1;height:14px;border-radius:999px;background:#ece7dd;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;width:20%;background:var(--accent);border-radius:999px;transition:width .6s,background .6s}
+.meter span{font-size:14px;min-width:5em;color:var(--mute)}
+.mode{font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--soft);color:var(--accent)}
+.ibtn{min-width:44px;min-height:40px;border-radius:10px;border:1px solid var(--line);background:#fff}
+#stage{position:relative;overflow:hidden;touch-action:none}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+#banner{position:absolute;left:50%;top:14px;transform:translate(-50%,-20px);opacity:0;transition:.4s;background:rgba(43,42,51,.88);color:#fff;border-radius:999px;padding:8px 18px;font-size:15px;white-space:nowrap;pointer-events:none;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
+#banner.on{opacity:1;transform:translate(-50%,0)}
+.goalbar{display:flex;align-items:center;gap:10px;padding:8px 12px max(8px,env(safe-area-inset-bottom));background:var(--paper);border-top:2px solid var(--line);z-index:3}
+.goalbar .g{flex:1;font-size:15px}
+.goalbar .g b{color:var(--accent)}
+
+/* scene sheet */
+#shade{position:fixed;inset:0;background:rgba(30,28,36,.35);z-index:8}
+#sheet{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(760px,100%);max-height:78vh;display:flex;flex-direction:column;background:var(--paper);border-radius:22px 22px 0 0;z-index:9;box-shadow:0 -10px 30px rgba(0,0,0,.2)}
+#sheet header{padding:14px 18px 8px;border-bottom:1px solid var(--line)}
+#sheet header small{color:var(--mute);font-size:13px;display:block}
+#sheet header h3{font-size:24px}
+#log{flex:1;overflow-y:auto;padding:12px 18px;display:grid;gap:10px;align-content:start}
+.b{animation:in .35s both}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+.b.n{color:var(--ink)}
+.b.s{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start}
+.b.s .nm{font-size:13px;font-weight:700;color:#fff;background:var(--c,#8a96a0);border-radius:999px;padding:3px 10px;margin-top:6px;white-space:nowrap}
+.b.s .say{background:#f1ede4;border-radius:4px 16px 16px 16px;padding:8px 14px}
+.b.t{background:var(--soft);border:2px dashed var(--accent);border-radius:22px;padding:8px 16px 8px 44px;position:relative}
+.b.t::before{content:"💭";position:absolute;left:12px;top:7px;font-size:20px}
+.b.o{background:#fde7e2;border-left:6px solid var(--warn);border-radius:8px;padding:10px 14px;font-weight:700}
+.b.info{background:#fff6dc;border-radius:12px;padding:12px 14px;border:1px solid #efd38a}
+.b.info b{display:block;margin-bottom:2px}
+.b.you{justify-self:end;background:var(--accent);color:#fff;border-radius:16px 4px 16px 16px;padding:8px 14px;font-weight:700;max-width:85%}
+.b.delta{font-size:13px;color:var(--mute);text-align:center}
+#ctrl{padding:10px 18px max(14px,env(safe-area-inset-bottom));border-top:1px solid var(--line);display:grid;gap:10px}
+#ctrl .q{font-weight:700;font-size:15px;color:var(--mute)}
+.op{min-height:54px;text-align:left;padding:10px 16px;border-radius:14px;border:2px solid var(--accent);background:#fff;font-weight:700;font-size:16px;line-height:1.5}
+.op:hover{background:var(--soft)}
+#next{justify-self:end}
+
+/* end */
+#end .wrap{max-width:820px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
+.stats div{background:var(--paper);border-radius:14px;padding:14px;border:2px solid var(--line)}
+.stats b{display:block;font-size:28px;color:var(--accent);font-family:var(--display);font-weight:400}
+table{width:100%;border-collapse:collapse;background:var(--paper);border-radius:14px;overflow:hidden;font-size:15px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:#ece7dd;font-size:14px}
+.moments{display:grid;gap:12px;margin:12px 0;padding:0;list-style:none}
+.moments li{background:var(--paper);border-radius:14px;padding:14px 16px;border:2px solid var(--line);display:grid;gap:4px}
+.moments h4{margin:0;font-family:var(--display);font-weight:400;font-size:21px}
+.moments p{margin:0}
+.moments .did{color:var(--mute);font-size:14px}
+.moments .do{color:var(--ok);font-weight:500}
+.moments .do::before{content:"同學可以：";font-weight:700}
+.reveal{background:var(--ink);color:#f5efe4;border-radius:20px;padding:22px 20px;margin:24px 0}
+.reveal h2{font-size:28px;margin-bottom:6px}
+.reveal p{margin:8px 0}
+section{margin:26px 0}
+section>h2{font-size:26px;margin-bottom:8px}
+.qs{padding-left:22px}
+.qs li{margin:6px 0}
+@media (max-width:560px){
+  .hud{gap:6px 8px;padding-left:10px;padding-right:10px}
+  .hud .clock{display:none}
+  .ibtn{min-width:40px;min-height:36px}
+  .meter{flex-basis:100%;order:5}
+  #sheet{max-height:84vh}
+  #sheet header h3{font-size:21px}
+  th,td{padding:8px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body data-lv="pr">
+
+<!-- ============ 開始畫面 ============ -->
+<div class="scr" id="start">
+  <div class="wrap">
+    <div class="hero">
+      <h1>同一間教室</h1>
+      <p>換一顆腦袋，過同一天</p>
+    </div>
+    <div class="chars" id="chars"></div>
+    <div class="row" style="justify-content:center">
+      <button class="btn alt" id="toWarm">先暖身：同一句話</button>
+    </div>
+    <p class="note" style="margin-top:20px">你會變成四年二班的一位同學，過他的一個早上。一位大約 8 分鐘。<br>玩完以後，可以用「支持模式」再過一次同一天，比比看哪裡不一樣。<br>角色和情境都是虛構的，不代表班上任何一位同學。</p>
+    <div class="foot">本遊戲由Peiching開發，角色與情境均為虛構<br>「換環境再玩一次」的設計參考《認識多元的世界》（chuoneone，CC BY 4.0）</div>
+  </div>
+</div>
+
+<!-- ============ 暖身 ============ -->
+<div class="scr" id="warm" hidden>
+  <div class="wrap">
+    <button class="btn alt small" data-go="start">← 回首頁</button>
+    <h2 style="font-size:32px;margin-top:16px">暖身：同一句話</h2>
+    <p>老師在講台上說了一句話。同一句話，傳到不同的人腦袋裡，會變成什麼？</p>
+    <div class="board">這一題，大家再算一次。</div>
+    <div class="tabs" id="wtabs">
+      <button data-w="most" aria-pressed="true">大部分同學</button>
+      <button data-w="pr">品睿</button>
+      <button data-w="kq">可晴</button>
+    </div>
+    <div class="cloud" id="wcloud"></div>
+    <p class="note" id="wnote"></p>
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-go="start">去選角色 ▶</button></div>
+  </div>
+</div>
+
+<!-- ============ 角色介紹 ============ -->
+<div class="scr" id="intro" hidden><div class="wrap" id="introBody"></div></div>
+
+<!-- ============ 遊戲 ============ -->
+<div id="game" hidden>
+  <div class="hud">
+    <div class="who"><i></i><span id="hWho">你是品睿</span></div>
+    <div class="clock" id="hClock">08:10</div>
+    <div class="mode" id="hMode">體驗模式</div>
+    <div class="meter"><b id="hMName">坐不住</b><div class="bar"><i id="hBar"></i></div><span id="hWord">平靜</span></div>
+    <button class="ibtn" id="sndBtn" style="margin-left:auto" aria-label="聲音" aria-pressed="true">🔊</button>
+    <button class="ibtn" id="homeBtn" aria-label="回首頁">🏠</button>
+  </div>
+  <div id="stage"><canvas id="cv"></canvas><div id="banner"></div></div>
+  <div class="goalbar">
+    <div class="g" id="goal">走到 <b>你的座位</b></div>
+    <button class="btn small" id="walkBtn">走過去 ▶</button>
+  </div>
+</div>
+<div id="shade" hidden></div>
+<div id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="shTitle">
+  <header><small id="shTime"></small><h3 id="shTitle"></h3></header>
+  <div id="log" aria-live="polite"></div>
+  <div id="ctrl"></div>
+</div>
+
+<!-- ============ 結算 ============ -->
+<div class="scr" id="end" hidden><div class="wrap" id="endBody"></div></div>
+
+<script>
+/* =====================================================================
+   設定區（劇本與參數）。改台詞、改時刻、改支持做法，都只動這一段。
+   每個時刻 moment：
+     at/spot   地點與要走到的格子；from 開始時把玩家放到某格
+     time goal  畫面上方時間、下方目標
+     sim / sup  體驗模式、支持模式各一份：
+                cast 出現的人 [名字,x,y]；beats 劇情；gain 心情增加量；ops 選項
+     beats 寫法：['n',旁白] ['s',誰,說的話] ['t',念頭] ['if',旗標,beat]
+     ops 寫法：{l:選項文字, r:[結果 beats], d:數值變化, f:設定旗標}
+     why / peer / stuck / other  結算頁用：為什麼、同學可以、卡住的事、另一面
+   ===================================================================== */
+const PEOPLE={
+  '林老師':'#5b72b0','王老師':'#b0784a','宥辰':'#3a8f5c','子涵':'#c9852b','芊芊':'#9a5fb0',
+  '導護老師':'#6d6a75','同學':'#8a96a0','後面的同學':'#8a96a0','旁邊的同學':'#8a96a0'
+};
+const CFG={
+  sim:{name:'體驗模式',gainMult:1,rest:5,thoughtEvery:4.5},
+  sup:{name:'支持模式',gainMult:.8,rest:10,thoughtEvery:11}
+};
+const LEVELS={
+pr:{
+  name:'品睿',face:'睿',color:'#2f8f9d',shirt:'#2f8f9d',
+  tagline:'數學很快、問題很多，字寫得很慢。',
+  title:'想得太快的一天',
+  intro:['今天你是品睿，四年二班 17 號。','你很喜歡恐龍和數學，腦袋裡隨時有好幾個問題在轉。你的字寫得很慢，體育普通，也不太會聊大家在玩的卡牌。'],
+  meter:{name:'坐不住',start:20,words:[[35,'平靜'],[60,'有點悶'],[85,'坐不住了'],[101,'快受不了']],explain:'已經會的東西一直重複、想說的話沒人聽、被誤會，這條就會往上升。滿了就會爆發。'},
+  overload:{
+    beats:[['o','你突然大聲說：「好無聊喔！我不要再等了！」'],['n','教室一下子安靜下來，大家都轉頭看你。'],['s','同學','他好奇怪喔。'],['t','我也不想這樣……可是我真的忍不住了。']],
+    info:'「坐不住」的感覺一直累積，找不到出口，最後一次爆出來。旁邊的人只看到最後那一句話，看不到前面累積了多久。'
+  },
+  thoughts:{
+    sim:['24×15 還有別的算法嗎？','如果月亮突然不見會怎樣？','走廊的磁磚一塊幾公分？','恐龍會不會其實是彩色的？','好想快點去看那本恐龍書','我剛剛是不是講太多了？','為什麼要等這麼久？'],
+    sup:['挑戰卡還有第二張嗎？','下課要問老師小數的事','恐龍會不會其實是彩色的？']
+  },
+  support:['已經會的人，可以拿講桌上的挑戰卡','想到問題可以先貼在「問題停車場」','小組討論時，每個人輪流說一個想法','回原班時，小老師會留紙條給你','寫作文可以先用說的，再挑重點寫','下課時，有同學會問你在看什麼書'],
+  moments:[
+  {id:'math',time:'08:40 第一節・數學',goal:'回到你的座位',from:[29,10],spot:[4,4],title:'講第三遍的數學課',
+   sim:{cast:[['林老師',6,2],['子涵',6,4]],gain:20,beats:[
+     ['n','林老師在黑板上寫 24×15。'],
+     ['s','林老師','這題我們再用直式算一次，這是第三次囉，大家跟著我。'],
+     ['t','24×15，就是 24×10 加 24×5，等於 360。我第一次就算好了。'],
+     ['t','如果是 24×1.5 呢？好想知道小數乘法怎麼算。'],
+     ['n','隔壁的子涵還在抄第一行。']],
+    ops:[
+     {l:'舉手問：「老師，如果是 24×1.5 呢？」',d:10,r:[['s','林老師','品睿，這個以後才會教，先跟大家一起算。'],['n','後面有人小聲說：「又來了。」'],['t','我只是想知道而已。']]},
+     {l:'忍住，在課本邊邊畫一隻恐龍',d:5,r:[['s','林老師','品睿，眼睛看黑板。'],['t','我有在聽啊，我只是已經會了。']]},
+     {l:'偷偷翻到下一頁先寫',d:-10,f:'missed',r:[['n','你一口氣寫完 6 題，好舒服。'],['n','可是老師剛剛說「第 4 題不用寫」，你沒聽到。']]}]},
+   sup:{cast:[['林老師',6,2],['子涵',6,4]],gain:20,beats:[
+     ['n','林老師在黑板上寫 24×15。'],
+     ['s','林老師','這題我們再算一次。已經會的人，可以拿講桌上的挑戰卡。'],
+     ['t','挑戰卡！'],
+     ['n','卡片上寫著：「24×15＝360。不用直式，你能想出幾種算法？」']],
+    ops:[
+     {l:'拿挑戰卡，想第三種算法',d:-15,r:[['n','你想到 25×15 再減 15。寫完的時候，全班剛好算完。'],['t','原來還可以這樣拆！']]},
+     {l:'把問題寫在「問題停車場」',d:-10,r:[['n','你在便利貼寫「24×1.5 怎麼算？」，貼在黑板旁邊。'],['s','林老師','好問題，下課跟你聊。']]},
+     {l:'跟大家一起算，當作檢查',d:-5,r:[['t','算第三次也可以，至少確定沒算錯。']]}]},
+   stuck:'老師講第三遍時，一直想問新問題',other:'很快看出算法的規律，還會自己想新問題',
+   why:'已經會的東西一直重複，大腦會像沒東西吃一樣，悶到坐不住。他問問題、畫畫，常常是在替大腦找事情做。',
+   peer:'他提問時，不要說「又來了」。'},
+  {id:'group',time:'09:30 第二節・自然',goal:'去教室後面跟組員會合',spot:[10,7],title:'紙杯電話小組',
+   sim:{cast:[['林老師',6,2],['宥辰',8,7],['芊芊',12,7]],gain:10,beats:[
+     ['s','林老師','各組討論：怎麼讓紙杯電話的聲音傳得更遠？15 分鐘後上台報告。'],
+     ['t','線要拉緊、換細一點的線、杯子換小一點的……我腦中已經有三個實驗了。'],
+     ['n','你一口氣講完三個想法。組員看著你，沒有人說話。'],
+     ['s','宥辰','呃……你講太快了，我聽不懂。']],
+    ops:[
+     {l:'算了，我自己寫比較快',d:15,r:[['n','你把整張學習單寫完了。'],['s','宥辰','那你自己上台就好啦。'],['n','上台時，只有你一個人站在前面。'],['t','他們是不是覺得我很愛現？']]},
+     {l:'再講一次，講慢一點',d:5,r:[['n','你又講了一次，大家還是一臉問號。'],['s','芊芊','你可以畫出來嗎？'],['n','你畫了圖，大家終於懂了，可是時間只剩 3 分鐘。']]},
+     {l:'不講了，讓他們決定',d:15,r:[['n','組員決定「把杯子塗上顏色」。'],['t','這跟聲音沒有關係啊……'],['n','你一句話也沒說，悶了 15 分鐘。']]}]},
+   sup:{cast:[['林老師',6,2],['宥辰',8,7],['芊芊',12,7]],gain:10,beats:[
+     ['s','林老師','各組討論：怎麼讓紙杯電話的聲音傳得更遠？先每個人輪流說一個想法，一人 1 分鐘，說完再動筆。'],
+     ['n','輪到你時，你只能說一個想法。你選了「線要拉緊」。'],
+     ['s','宥辰','我覺得線太長，聲音會變小。'],
+     ['t','對耶，線的長度也有關係，我剛剛沒想到。']],
+    ops:[
+     {l:'把三個想法畫成表格給大家選',d:-15,r:[['n','大家選了「線拉緊」和「線的長度」兩個來試。'],['s','芊芊','品睿，你這張表好清楚！']]},
+     {l:'先聽完大家的再說',d:-10,r:[['n','你聽到兩個自己沒想到的點子。報告時，全組一起上台。']]}]},
+   stuck:'想法很多，組員跟不上，最後自己做完',other:'一個問題能想出好幾種做法',
+   why:'他的想法跑得很快，嘴巴和手常常跟不上，別人也跟不上。被說「你自己做就好」，他會以為大家不想跟他同一組。',
+   peer:'跟他說「你先講想法，我們一起寫」。聽不懂，就請他畫出來。'},
+  {id:'chat',time:'10:10 下課',goal:'走到走廊上的同學那裡',spot:[16,10],title:'下課的卡牌圈',
+   sim:{cast:[['宥辰',14,9],['同學',18,9],['旁邊的同學',17,11]],gain:5,beats:[
+     ['n','下課了。宥辰和幾個同學圍在走廊，在交換卡牌。'],
+     ['t','我昨天看到一篇文章，說恐龍滅絕可能不只是隕石，還有火山爆發！好想跟人說。'],
+     ['s','宥辰','你這張卡攻擊力多少？']],
+    ops:[
+     {l:'說：「你們知道恐龍滅絕有兩種說法嗎？」',d:10,r:[['s','同學','蛤？現在是在講卡牌耶。'],['n','大家又低頭看卡牌。'],['t','我好像又講錯話了。']]},
+     {l:'安靜站在旁邊看他們玩',d:10,r:[['n','你不太懂卡牌的規則，站了 10 分鐘。'],['t','我跟大家在一起，可是好像只有我一個人。']]},
+     {l:'回教室看自己的恐龍書',d:-5,r:[['n','你看完一整章，很開心。'],['n','上課鐘響，同學笑著走進來，你不知道他們在笑什麼。']]}]},
+   sup:{cast:[['宥辰',14,9],['同學',18,9],['旁邊的同學',17,11]],gain:0,beats:[
+     ['n','下課了。宥辰和幾個同學圍在走廊，在交換卡牌。'],
+     ['s','宥辰','品睿，你在看什麼書？'],
+     ['t','他在問我！']],
+    ops:[
+     {l:'講恐龍滅絕的兩種說法',d:-15,r:[['n','你講了 2 分鐘。'],['s','宥辰','那我這張暴龍卡應該要加火山技能！'],['n','大家笑成一團，你也跟著笑。']]},
+     {l:'請他們教你卡牌怎麼玩',d:-15,r:[['s','宥辰','這張是攻擊、這張是防守……'],['n','你很快就算出哪一張最划算，大家搶著問你。']]}]},
+   stuck:'想聊的話題，跟大家不一樣',other:'對有興趣的事會鑽得很深、懂得很多',
+   why:'他感興趣的話題，跟同年紀的同學不一定一樣。他也想加入，只是不知道怎麼開口。',
+   peer:'問他「你最近在看什麼？」，也邀他加入你們的話題。'},
+  {id:'back',time:'11:50 第四節下課',goal:'回四年二班',pre:'第三、四節，你到小教室上課，做了一個會自己轉的紙風車。',from:[27,5],spot:[7,7],title:'回到原班',
+   sim:{cast:[['子涵',5,6],['同學',9,6]],gain:25,beats:[
+     ['n','你回到四年二班。你的位子上坐著別人。'],
+     ['s','子涵','剛剛換座位了啦，你的位子在最後面。'],
+     ['n','桌上沒有你的通知單，黑板上的作業也擦掉一半了。'],
+     ['s','同學','你又不在，真好耶，都不用上數學。'],
+     ['t','我也是去上課啊……而且我不知道明天要帶什麼。'],
+     ['if','missed',['t','早上那張數學，第 4 題原來不用寫？我都寫完了……']]],
+    ops:[
+     {l:'問子涵剛剛發生什麼事',d:5,r:[['s','子涵','我也忘了，你去問老師啦。'],['n','林老師在開會。你只抄到一半的作業。']]},
+     {l:'說：「我又不是去玩！」',d:15,r:[['s','同學','我又沒說你去玩。'],['n','大家看著你，你覺得臉好燙。']]},
+     {l:'什麼都不說，走到最後面坐下',d:10,r:[['t','下次再問好了。'],['n','隔天，你是全班唯一沒帶彩色筆的人。']]}]},
+   sup:{cast:[['芊芊',5,6],['同學',9,6]],gain:5,beats:[
+     ['n','你回到四年二班。桌上有一張紙條。'],
+     ['n','紙條上寫：「剛剛換座位，你的新位子在窗邊第二個。明天帶彩色筆。通知單在你抽屜。——小老師 芊芊」'],
+     ['s','芊芊','你們剛剛在做什麼？']],
+    ops:[
+     {l:'拿紙風車給她看',d:-15,r:[['n','你吹了一口氣，風車轉起來了。'],['s','芊芊','哇，可以教我做嗎？']]},
+     {l:'謝謝她，去新座位整理東西',d:-10,r:[['t','原來我不在的時候，有人記得我。']]}]},
+   stuck:'回到教室，錯過了換座位和通知',other:'願意多學一些、挑戰更難的東西',
+   why:'他每週有幾節課在別的教室上，回來時常常錯過班上剛發生的事。那段時間他也在上課。',
+   peer:'他回來時，告訴他剛剛發生了什麼事。'},
+  {id:'essay',time:'13:30 第五節・國語',goal:'回到座位寫作文',spot:[4,4],title:'寫不完的作文',
+   sim:{cast:[['林老師',6,2],['後面的同學',4,6]],gain:20,beats:[
+     ['s','林老師','作文題目是〈我的夢想〉，寫 300 字。'],
+     ['t','我想當古生物學家，去蒙古挖化石。要從我五歲第一次去博物館開始寫……'],
+     ['n','腦中的句子很長很長，手卻寫得很慢。寫了 15 分鐘，只有 4 行。'],
+     ['n','字擠在一起，擦了又擦，紙都快破了。'],
+     ['s','後面的同學','哇，你的字好醜，你不是很聰明嗎？']],
+    ops:[
+     {l:'把句子縮短，趕快寫完',d:10,r:[['n','你寫完了，可是只剩下「我想當古生物學家，因為恐龍很酷」。'],['t','我想說的不是這樣……']]},
+     {l:'慢慢寫，寫不完就算了',d:15,r:[['n','下課鐘響，你只寫了一半。'],['s','林老師','品睿，下課留下來寫完。']]},
+     {l:'回頭跟他說：「你管我。」',d:20,r:[['n','他「哼」了一聲。你更寫不下去了。']]}]},
+   sup:{cast:[['林老師',6,2],['後面的同學',4,6]],gain:10,beats:[
+     ['s','林老師','作文題目是〈我的夢想〉。想得比寫得快的人，可以先用平板錄音，把想法說出來，再挑重點寫。'],
+     ['n','你對著平板講了 3 分鐘，從五歲第一次去博物館，一路講到蒙古的戈壁沙漠。']],
+    ops:[
+     {l:'聽錄音，挑三段最想寫的',d:-15,r:[['n','你寫了 280 字，每一句都是你真正想說的。'],['t','字還是很醜，可是我寫完了！']]},
+     {l:'先畫一張挖化石的圖，再寫',d:-10,r:[['n','畫完圖，句子變得比較清楚，你寫到了第 3 段。'],['s','後面的同學','你畫的是迅猛龍嗎？好酷。']]}]},
+   stuck:'腦中句子很多，手寫得很慢',other:'腦中有很豐富的想法和詞彙',
+   why:'他腦袋想得很快，可是手寫的速度跟其他同學差不多，有時還比較慢。想法和手的速度差很多，會很挫折。',
+   peer:'不要拿「你不是很聰明嗎？」當開頭。'}
+  ],
+  questions:['今天哪一個時刻，你最想趕快離開？','支持模式裡，哪一個改變最有用？那個改變難不難做到？','如果班上有同學一直問問題，你以前會怎麼想？現在呢？','你自己有沒有「早就會了，還要一直等」的時候？']
+},
+kq:{
+  name:'可晴',face:'晴',color:'#d9694b',shirt:'#d9694b',
+  tagline:'很會畫畫、很在意公平，數學普通。',
+  title:'感受太強的一天',
+  intro:['今天你是可晴，四年二班 9 號。','你很會畫畫，看東西看得很仔細。你很在意事情公不公平，也很容易被故事感動。你的數學普通，有時候考得不太好。'],
+  meter:{name:'心情浪',start:20,words:[[35,'平靜'],[60,'有點起伏'],[85,'浪很大'],[101,'快被淹沒']],explain:'被催、被比較、看到不公平、感受到別人的難過，這條就會往上升。滿了就會淹過來。'},
+  overload:{
+    beats:[['o','眼淚一下子湧出來，你停不下來，只好把臉埋在手臂裡。'],['s','同學','她又怎麼了？'],['t','我知道這可能是小事，可是心裡的浪好大。']],
+    info:'心情的浪一波接一波，上一波還沒退，下一波又來了。旁邊的人只看到最後一波，以為她為了一點小事就哭。'
+  },
+  thoughts:{
+    sim:['那一筆真的很明顯嗎？','剛剛那句話是什麼意思？','大家是不是在看我？','窗外的雲像一隻鯨魚','流浪狗晚上會冷嗎？','為什麼他可以，我不行？','要是做錯了怎麼辦？'],
+    sup:['窗外的雲像一隻鯨魚','下週的正式作品要畫什麼？','那張小卡會貼在哪裡？']
+  },
+  support:['美勞課先畫草稿，下週才畫正式的','發考卷時，不問別人幾分','躲避球每週有輪流的裁判','難過的時候，可以把話寫在小卡上','小老師輪流當，有問題先自己想 3 分鐘'],
+  moments:[
+  {id:'art',time:'08:40 第一節・美勞',goal:'去美勞教室',from:[29,10],spot:[19,5],title:'畫歪的一筆',
+   sim:{cast:[['王老師',19,2],['宥辰',21,5]],gain:20,beats:[
+     ['s','王老師','今天畫「我的校園」，下課前交。'],
+     ['n','你決定畫走廊盡頭那棵鳳凰木。'],
+     ['n','畫到樹枝時，有一筆畫歪了一點點。'],
+     ['t','歪了。整張都毀了。'],
+     ['t','擦掉的地方會留下痕跡，換一張重畫好了。'],
+     ['s','宥辰','那裡根本看不出來啦！']],
+    ops:[
+     {l:'換一張紙重畫',d:15,r:[['n','你重畫到第三張。下課鐘響，你只畫好樹幹。'],['s','王老師','可晴，怎麼還沒畫完？']]},
+     {l:'把畫歪的地方改成一隻鳥',d:5,r:[['n','那隻鳥很可愛，可是你一直覺得牠是「補救」出來的。'],['t','別人看得出來嗎？']]},
+     {l:'聽宥辰的，繼續畫',d:10,r:[['n','你畫完了，可是一直盯著那一筆。'],['t','以後每次看到這張畫，我都會想到那一筆。']]}]},
+   sup:{cast:[['王老師',19,2],['宥辰',21,5]],gain:20,beats:[
+     ['s','王老師','今天畫「我的校園」。今天是草稿，下週才畫正式的。畫錯的地方可以留著，看看它會變成什麼。'],
+     ['n','你決定畫走廊盡頭那棵鳳凰木。'],
+     ['n','畫到樹枝時，有一筆畫歪了一點點。'],
+     ['t','歪了……不過老師說這是草稿。']],
+    ops:[
+     {l:'在旁邊寫「下週要修」，繼續畫',d:-15,r:[['n','你畫完了整棵樹，還畫了樹下的一排螞蟻。'],['s','王老師','連螞蟻都有！你看得好仔細。']]},
+     {l:'把畫歪的地方改成一隻鳥',d:-10,r:[['n','草稿上多了一隻鳥。你決定下週畫正式作品時，也要畫牠。']]}]},
+   stuck:'一筆畫歪，就想整張重畫',other:'很仔細，對作品的要求很高',
+   why:'她對自己的作品要求很高，一點點不完美就很難放下。被催的時候，會更難受。',
+   peer:'不要催她「隨便畫一畫就好」。可以說說你喜歡畫裡的哪個地方。'},
+  {id:'score',time:'09:30 第二節・數學',goal:'回四年二班的座位',spot:[4,4],title:'82 分的考卷',
+   sim:{cast:[['林老師',6,2],['子涵',6,4]],gain:30,beats:[
+     ['n','林老師在發上週的數學考卷。你拿到 82 分。'],
+     ['s','子涵','可晴，你幾分？'],
+     ['s','子涵','82？你不是很厲害嗎？我考 90 耶。'],
+     ['n','好幾個同學轉過來看你。'],
+     ['t','我數學本來就沒有很好啊……為什麼大家覺得我應該什麼都會？']],
+    ops:[
+     {l:'把考卷折起來，塞進抽屜',d:10,r:[['n','一整節課，你都在想那張考卷。'],['t','他們會不會覺得我其實很笨？']]},
+     {l:'笑著說：「對啊，我數學很爛。」',d:10,r:[['n','大家笑了。你也笑了，可是心裡很不舒服。']]},
+     {l:'說：「我畫畫比較厲害，數學普通。」',d:5,r:[['s','子涵','喔，是喔。'],['n','子涵轉回去了。你的手還在抖。']]}]},
+   sup:{cast:[['林老師',6,2],['子涵',6,4]],gain:10,beats:[
+     ['n','林老師在發上週的數學考卷。你拿到 82 分。'],
+     ['s','林老師','考卷是自己的，不用問別人幾分。看看你錯的是哪一種題目。'],
+     ['s','子涵','可晴，最後一題你會嗎？我想不出來。'],
+     ['t','最後一題我剛好會！']],
+    ops:[
+     {l:'教子涵最後一題',d:-15,r:[['n','你畫了一張圖，子涵一下就懂了。'],['s','子涵','你這樣畫好清楚！那第 5 題換我教你。']]},
+     {l:'先訂正自己錯的題目',d:-10,r:[['n','你發現錯的 3 題都是單位換算。'],['t','原來我是這種題目不熟。']]}]},
+   stuck:'被拿來比分數',other:'很在意自己的表現，想知道哪裡要加強',
+   why:'她常被期待「每一科都很厲害」。其實每個人都有擅長和不擅長的科目，她也是。',
+   peer:'不要拿「你不是很厲害嗎？」來比分數。'},
+  {id:'dodge',time:'10:10 下課',goal:'去操場打躲避球',spot:[8,14],title:'踩線的那一球',
+   sim:{cast:[['宥辰',8,17],['同學',5,16],['導護老師',14,12]],gain:25,beats:[
+     ['n','下課，全班在操場打躲避球。'],
+     ['n','對面的宥辰踩到線，還是把球丟出來，打中了你。'],
+     ['t','他明明踩線了！為什麼沒有人說？'],
+     ['s','宥辰','你出局了啦！']],
+    ops:[
+     {l:'大聲說：「你踩線！這球不算！」',d:15,r:[['s','宥辰','哪有？你很愛計較耶。'],['s','同學','玩遊戲幹嘛那麼認真？'],['n','大家繼續玩，沒有人理你。']]},
+     {l:'算了，走出場外',d:15,r:[['n','你站在場外，腦中一直重播他踩線的那一刻。'],['t','不公平，真的不公平。']]},
+     {l:'去找導護老師說',d:10,r:[['s','導護老師','這種小事你們自己處理就好。'],['n','你回來的時候，比賽已經結束了。']]}]},
+   sup:{cast:[['宥辰',8,17],['芊芊',11,14],['同學',5,16]],gain:25,beats:[
+     ['n','下課，全班在操場打躲避球。這週輪到芊芊當裁判。'],
+     ['n','對面的宥辰踩到線，還是把球丟出來，打中了你。'],
+     ['t','他明明踩線了！']],
+    ops:[
+     {l:'跟芊芊說：「他剛剛踩線。」',d:-15,r:[['s','芊芊','我沒看清楚耶，那這球重來好了。'],['s','宥辰','好啦好啦，重來。']]},
+     {l:'先繼續玩，等班會再提出來',d:-5,r:[['n','你把「踩線要怎麼判？」寫在班會提案單上。'],['t','這樣以後大家都知道規則了。']]}]},
+   stuck:'看到不公平，一直放不下',other:'強烈的正義感，會替大家在意規則',
+   why:'她很在意規則對每個人都一樣。別人覺得是小事，她會一直想。',
+   peer:'聽她把理由講完，可以說「那我們再看一次規則」。'},
+  {id:'dog',time:'10:30 第三節・國語',goal:'回教室上國語課',spot:[4,4],title:'等不到主人的狗',
+   sim:{cast:[['林老師',6,2],['後面的同學',4,6]],gain:25,beats:[
+     ['n','國語課本這一課，講一隻流浪狗在冬天等主人回來，最後沒有等到。'],
+     ['n','讀到最後一段，你的喉嚨好緊。'],
+     ['t','牠一直在等，牠不知道主人不會回來了……'],
+     ['n','眼淚掉在課本上。'],
+     ['s','後面的同學','你在哭喔？又不是你的狗。']],
+    ops:[
+     {l:'趴在桌上，不讓別人看到',d:10,r:[['n','你趴了一整節。'],['t','我也不想這樣，可是停不下來。']]},
+     {l:'說：「我沒有哭！」',d:15,r:[['n','你用力擦眼睛，眼睛更紅了。'],['n','下課時，好幾個人在偷看你。']]},
+     {l:'舉手說要去廁所',d:5,r:[['n','你在廁所待了 10 分鐘，回來時課已經上到下一段。']]}]},
+   sup:{cast:[['林老師',6,2],['後面的同學',4,6]],gain:15,beats:[
+     ['n','國語課本這一課，講一隻流浪狗在冬天等主人回來，最後沒有等到。'],
+     ['n','讀到最後一段，你的喉嚨好緊。'],
+     ['s','林老師','這一課讓人很難過。有感覺的人，可以把想說的話寫在小卡上，寫給這隻狗也可以。'],
+     ['n','你看到教室後面，還有兩個同學也在擦眼淚。']],
+    ops:[
+     {l:'寫一張小卡給那隻狗',d:-15,r:[['n','你寫：「如果我在那個冬天遇到你，我會帶你回家。」'],['s','林老師','可晴，這張可以貼在教室後面嗎？']]},
+     {l:'問老師：「現在還有很多流浪狗嗎？」',d:-10,r:[['s','林老師','有喔。下課我們一起查查看，高雄有哪些地方在幫流浪動物。']]}]},
+   stuck:'讀到難過的故事，很久都停不下來',other:'很深的同理心，感受得到別人的痛',
+   why:'她對故事、對人、對動物的感受都很深，難過來得比別人大，也比別人久。這是很強的同理心。',
+   peer:'不要笑她太敏感。可以安靜坐在旁邊，或問她要不要一起去走走。'},
+  {id:'helper',time:'11:20 第四節・國語習作',goal:'回座位寫習作',pre:'下課你去走廊裝水，上課鐘響了。',from:[24,10],spot:[4,4],title:'大家的小老師',
+   sim:{cast:[['林老師',6,2],['子涵',6,4],['宥辰',2,4]],gain:25,beats:[
+     ['s','林老師','可晴，你寫完了就去幫同學看習作。'],
+     ['n','你的習作還有 2 頁沒寫。'],
+     ['s','子涵','可晴，這題怎麼寫？'],
+     ['s','宥辰','可晴，換我！'],
+     ['s','同學','可晴，你直接給我看答案就好。'],
+     ['t','我自己的還沒寫完……可是不幫，好像很壞。']],
+    ops:[
+     {l:'一個一個教',d:15,r:[['n','你教了 5 個人。下課時，你自己的習作還是 2 頁沒寫。'],['t','今天又要帶回家寫了。']]},
+     {l:'把答案借給他們看',d:15,r:[['n','大家很快就抄完了。'],['s','林老師','怎麼大家錯的地方都一樣？']]},
+     {l:'說：「我先寫完自己的。」',d:10,r:[['s','同學','小氣。'],['n','你低頭寫，可是一直聽到那兩個字。']]}]},
+   sup:{cast:[['林老師',6,2],['子涵',6,4],['宥辰',2,4]],gain:5,beats:[
+     ['s','林老師','今天的小老師是宥辰和芊芊。有問題先自己想 3 分鐘，再問小老師。'],
+     ['n','你可以專心寫自己的習作。'],
+     ['n','寫到第 2 頁時，子涵小聲問你：「這題你可以給我一點提示就好嗎？」']],
+    ops:[
+     {l:'只給一個提示',d:-15,r:[['n','你說：「先畫圖看看。」子涵自己寫出來了。'],['s','子涵','我自己想出來了！']]},
+     {l:'說：「我寫完再教你。」',d:-10,r:[['s','子涵','好，那我先試試看。'],['n','10 分鐘後，你寫完了自己的，也教完了。']]}]},
+   stuck:'一直被找去幫忙，自己的寫不完',other:'很會解釋，願意幫助別人',
+   why:'她常被當成固定的小老師。幫別人很好，可是她自己的事也需要時間做。',
+   peer:'先自己想一下再問。要問的話，可以說「給我一個提示就好」。'}
+  ],
+  questions:['今天哪一個時刻，你的心情浪最大？','「你不是很厲害嗎？」這句話，聽的人可能有什麼感覺？','支持模式裡，同學和老師做了哪些不一樣的事？','你自己有沒有很在意、可是別人覺得是小事的事情？']
+}
+};
+const WARM={
+  most:{c:'#8a96a0',t:['好，再算一次。','（拿起鉛筆，開始算。）'],n:'聽到一句交代，就照著做。'},
+  pr:{c:'#2f8f9d',t:['第三次了……我早就算好了。','如果把 7 換成 0.7 會怎樣？','可以先做下一題嗎？'],n:'已經會了，還要一直等，腦袋會自己去找別的事做。'},
+  kq:{c:'#d9694b',t:['是不是我剛剛算錯了？','老師是在說我嗎？','我要擦乾淨，整題重寫一次。'],n:'一句很普通的話，也可能被聽成「你做得不夠好」。'}
+};
+const REVEAL=[
+  '品睿和可晴是虛構的角色。他們遇到的事，來自一部分<b>資優生</b>常提到的經驗。在學校裡，有些同學每週會到另一間教室上資優班的課，品睿第三、四節去的小教室，就是這種課。',
+  '有些資優生像品睿，學得很快、問題很多；有些像可晴，感受很深、很在意公平；也有很多資優生跟他們兩個都不像。資優生也有不擅長的科目，也會考不好、會寫錯字。',
+  '剛剛讓你卡住的事，常常也是他的長處。',
+  '請不要拿遊戲裡的角色去比對班上的同學。想知道一個人在想什麼，最好的方法是用他舒服的方式，問他本人。'
+];
+/* ===================== 設定區結束 ===================== */
+</script>
+
+<script>
+/* ===================== 引擎 ===================== */
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const KEY='same-classroom:v1';
+const store={get(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}},set(o){try{localStorage.setItem(KEY,JSON.stringify(o))}catch(e){}}};
+let SAVE=store.get();SAVE.done=SAVE.done||{};SAVE.runs=SAVE.runs||{};
+
+/* ---------- 聲音（程式合成，沒有音檔） ---------- */
+const AU=(()=>{let ctx=null,master=null,on=SAVE.snd!==0;
+  function init(){if(ctx)return;try{ctx=new (window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=on?.5:0;master.connect(ctx.destination)}catch(e){ctx=null}}
+  function tone(f,t,d,type='sine',v=.12){if(!ctx)return;const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(master);o.start(t);o.stop(t+d+.05)}
+  const mf=m=>440*Math.pow(2,(m-69)/12);
+  return{init,get on(){return on},
+    set(v){on=v;SAVE.snd=v?1:0;store.set(SAVE);if(master)master.gain.value=v?.5:0},
+    bell(){if(!ctx)return;const t=ctx.currentTime+.05;[64,60,62,55,55,62,64,60].forEach((m,i)=>tone(mf(m),t+i*.32,.6,'sine',.09))},
+    blip(){if(!ctx)return;tone(mf(79),ctx.currentTime,.08,'triangle',.05)},
+    up(){if(!ctx)return;const t=ctx.currentTime;[72,76,79].forEach((m,i)=>tone(mf(m),t+i*.07,.35,'sine',.08))},
+    down(){if(!ctx)return;const t=ctx.currentTime;[64,61,57].forEach((m,i)=>tone(mf(m),t+i*.1,.45,'sine',.08))},
+    boom(){if(!ctx)return;const t=ctx.currentTime;tone(70,t,.9,'sawtooth',.14);tone(55,t+.05,1,'square',.06)}
+  }})();
+
+/* ---------- 地圖 ---------- */
+const TS=32,MW=32,MH=20;
+// 0 牆、1 可走、2 家具（不能走）
+const grid=Array.from({length:MH},()=>Array(MW).fill(0));
+const kind=Array.from({length:MH},()=>Array(MW).fill(''));
+function fill(x,y,w,h,v,k){for(let j=y;j<y+h;j++)for(let i=x;i<x+w;i++){grid[j][i]=v;if(k)kind[j][i]=k}}
+const ROOMS=[
+  {id:'cls',n:'四年二班',x:1,y:1,w:13,h:8,door:[7,8],floor:'wood'},
+  {id:'art',n:'美勞教室',x:15,y:1,w:9,h:8,door:[19,8],floor:'tile'},
+  {id:'small',n:'小教室',x:25,y:1,w:6,h:8,door:[27,8],floor:'wood2'}
+];
+fill(1,9,30,3,1,'hall');
+fill(1,12,20,7,1,'court');fill(21,12,1,7,1,'path');fill(22,12,9,7,1,'grass');
+ROOMS.forEach(r=>{fill(r.x+1,r.y+1,r.w-2,r.h-2,1,r.floor);grid[r.door[1]][r.door[0]]=1;kind[r.door[1]][r.door[0]]='door'});
+const DESKS=[];[3,5,9,11].forEach(x=>[3,5].forEach(y=>DESKS.push([x,y])));
+DESKS.forEach(([x,y])=>grid[y][x]=2);grid[2][7]=2; // 講桌
+const ART=[[17,4],[18,4],[20,4],[21,4],[17,6],[18,6],[20,6],[21,6]];ART.forEach(([x,y])=>grid[y][x]=2);
+grid[4][27]=2;grid[4][28]=2;
+const TREES=[[23,13],[26,14],[29,13],[24,17],[28,17]];TREES.forEach(([x,y])=>grid[y][x]=2);
+const walk=(tx,ty)=>tx>=0&&ty>=0&&tx<MW&&ty<MH&&grid[ty][tx]===1;
+function bfs(sx,sy,gx,gy){
+  if(!walk(gx,gy))return null;const key=(x,y)=>y*MW+x,prev=new Map([[key(sx,sy),-1]]),q=[[sx,sy]];
+  while(q.length){const [x,y]=q.shift();if(x===gx&&y===gy){const path=[];let k=key(x,y);while(k!==-1){path.push([k%MW,Math.floor(k/MW)]);k=prev.get(k)}return path.reverse()}
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(walk(nx,ny)&&!prev.has(key(nx,ny))){prev.set(key(nx,ny),key(x,y));q.push([nx,ny])}}}
+  return null}
+
+/* 靜態地圖只畫一次 */
+let STATIC=null;
+function buildStatic(){
+  const c=document.createElement('canvas');c.width=MW*TS;c.height=MH*TS;const g=c.getContext('2d');
+  g.fillStyle='#8f8676';g.fillRect(0,0,c.width,c.height);
+  const COL={hall:['#ece4d3','#e4dbc8'],court:['#9cc28f','#93ba86'],grass:['#a9cf8f','#9fc684'],path:['#d8cdb6','#d0c4ab'],wood:['#e3c497','#dcbb8b'],wood2:['#d9c9a8','#d1bf9c'],tile:['#e6e9ea','#dde1e2'],door:['#e3c497','#dcbb8b']};
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const k=kind[y][x];if(!k)continue;const p=COL[k];g.fillStyle=p[(x+y)%2];g.fillRect(x*TS,y*TS,TS,TS)}
+  // 操場線
+  g.strokeStyle='rgba(255,255,255,.85)';g.lineWidth=3;g.strokeRect(2*TS+8,12*TS+10,17*TS-16,6*TS-20);g.beginPath();g.moveTo(10.5*TS,12*TS+10);g.lineTo(10.5*TS,18*TS-10);g.stroke();
+  // 房間牆
+  ROOMS.forEach(r=>{g.fillStyle='#5f5a66';g.fillRect(r.x*TS,r.y*TS,r.w*TS,TS*.5);g.fillRect(r.x*TS,(r.y+r.h)*TS-TS*.5,r.w*TS,TS*.5);g.fillRect(r.x*TS,r.y*TS,TS*.5,r.h*TS);g.fillRect((r.x+r.w)*TS-TS*.5,r.y*TS,TS*.5,r.h*TS);
+    const [dx,dy]=r.door;g.fillStyle=COL[r.floor][0];g.fillRect(dx*TS,dy*TS-1,TS,TS*.5+2);
+    g.font='700 13px "Noto Sans TC",sans-serif';g.textAlign='left';g.fillStyle='#fff';g.fillText(r.n,r.x*TS+14,(r.y+r.h)*TS-4)});
+  // 黑板
+  g.fillStyle='#2f4f43';g.fillRect(3*TS,1*TS+14,8*TS,10);g.fillStyle='#2f4f43';g.fillRect(26*TS,1*TS+14,4*TS,8);
+  // 桌椅
+  const desk=(x,y,w=1)=>{g.fillStyle='#b98a55';g.fillRect(x*TS+3,y*TS+6,w*TS-6,TS-14);g.fillStyle='#8f6638';g.fillRect(x*TS+3,y*TS+TS-10,w*TS-6,3)};
+  DESKS.forEach(([x,y])=>desk(x,y));desk(7,2);
+  [[17,4],[20,4],[17,6],[20,6]].forEach(([x,y])=>{g.fillStyle='#c9cfd3';g.fillRect(x*TS+3,y*TS+4,2*TS-6,TS-8);g.fillStyle='#e5735a';g.fillRect(x*TS+10,y*TS+9,8,6);g.fillStyle='#4a8fc9';g.fillRect(x*TS+30,y*TS+10,10,5)});
+  desk(27,4,2);
+  // 樹
+  TREES.forEach(([x,y])=>{g.fillStyle='rgba(0,0,0,.15)';g.beginPath();g.ellipse(x*TS+16,y*TS+26,13,5,0,0,7);g.fill();g.fillStyle='#6b4b32';g.fillRect(x*TS+13,y*TS+14,6,12);g.fillStyle='#4f9a55';g.beginPath();g.arc(x*TS+16,y*TS+10,13,0,7);g.fill();g.fillStyle='#5fae62';g.beginPath();g.arc(x*TS+12,y*TS+7,7,0,7);g.fill()});
+  g.font='700 13px "Noto Sans TC",sans-serif';g.fillStyle='rgba(43,42,51,.55)';g.textAlign='left';
+  g.fillText('走廊',1.4*TS,9.7*TS);g.fillText('操場',1.4*TS,12.7*TS);g.fillText('花園',22.3*TS,12.7*TS);
+  return c}
+
+function drawPerson(g,x,y,o){
+  const bob=o.moving?Math.sin(o.walk*2.2)*1.4:0,lp=o.moving?Math.sin(o.walk*2.2)*2.5:0;
+  g.save();g.translate(x,y);
+  g.fillStyle='rgba(0,0,0,.2)';g.beginPath();g.ellipse(0,11,9,3.5,0,0,7);g.fill();
+  g.fillStyle=o.pants||'#2c3a66';g.beginPath();g.ellipse(-3.2,8+lp*.3,2.6,3.6,0,0,7);g.fill();g.beginPath();g.ellipse(3.2,8-lp*.3,2.6,3.6,0,0,7);g.fill();
+  g.fillStyle=o.shirt;g.strokeStyle='rgba(31,42,68,.35)';g.lineWidth=1;g.beginPath();g.ellipse(0,bob,7.5,7.5,0,0,7);g.fill();g.stroke();
+  g.fillStyle='#f3cfaa';g.beginPath();g.arc(0,-11+bob,7.5,0,7);g.fill();
+  g.fillStyle=o.hair||'#2a211c';g.beginPath();g.arc(0,-12.5+bob,7.6,Math.PI*1.02,Math.PI*1.98);g.fill();
+  if(o.long){g.fillRect(-7.6,-12.5+bob,3,10);g.fillRect(4.6,-12.5+bob,3,10)}
+  g.fillStyle='#2a2a2a';g.beginPath();g.arc(-2.6+(o.fx||0)*2,-10.5+bob,1.1,0,7);g.arc(2.6+(o.fx||0)*2,-10.5+bob,1.1,0,7);g.fill();
+  g.fillStyle='rgba(230,120,110,.45)';g.beginPath();g.arc(-4.5,-8+bob,1.4,0,7);g.arc(4.5,-8+bob,1.4,0,7);g.fill();
+  g.restore();
+  if(o.label){g.font='700 11px "Noto Sans TC",sans-serif';g.textAlign='center';g.textBaseline='middle';const tw=g.measureText(o.label).width+12;g.fillStyle=o.labelBg||'rgba(31,42,68,.85)';g.beginPath();g.roundRect?g.roundRect(x-tw/2,y-38+bob,tw,16,8):g.rect(x-tw/2,y-38+bob,tw,16);g.fill();g.fillStyle='#fff';g.fillText(o.label,x,y-30+bob);g.textBaseline='alphabetic'}
+}
+function cloud(g,x,y,text,color,alpha){
+  g.save();g.globalAlpha=alpha;g.font='500 13px "Noto Sans TC",sans-serif';const w=Math.min(220,g.measureText(text).width+24),h=28;
+  const bx=x-w/2,by=y-64;g.fillStyle='#fff';g.strokeStyle=color;g.lineWidth=2;g.setLineDash([5,4]);
+  g.beginPath();g.roundRect?g.roundRect(bx,by,w,h,14):g.rect(bx,by,w,h);g.fill();g.stroke();g.setLineDash([]);
+  g.beginPath();g.arc(x-6,by+h+6,4,0,7);g.fill();g.stroke();g.beginPath();g.arc(x-2,by+h+14,2.5,0,7);g.fill();g.stroke();
+  g.fillStyle='#2b2a33';g.textAlign='center';g.textBaseline='middle';g.fillText(text,x,by+h/2,w-12);g.textBaseline='alphabetic';g.restore()}
+
+/* ---------- 遊戲狀態 ---------- */
+let S=null,P={x:29.5,y:10.5,moving:false,fx:0},path=null,keys={},running=false,paused=true,last=0,walkT=0,camX=0,camY=0,zoom=1,dpr=1,cvW=1,cvH=1;
+const SITTERS=[[3,3],[5,3],[9,3],[11,3],[3,5],[9,5],[11,5],[5,5]];
+const HAIRS=['#1b1716','#2a211c','#3b2b22','#151515'];
+const LV=()=>LEVELS[S.lv],C=()=>CFG[S.mode],MO=()=>LV().moments[S.mi],MV=()=>MO()[S.mode];
+function newRun(lv,mode){
+  document.body.dataset.lv=lv;
+  S={lv,mode,mi:-1,m:LEVELS[lv].meter.start,shown:LEVELS[lv].meter.start,peak:LEVELS[lv].meter.start,over:0,firstOver:true,picks:[],flags:{},arrived:false,thought:null,thoughtT:2,inScene:false};
+  showScreen('game');resize();running=true;paused=false;last=performance.now();requestAnimationFrame(frame);
+  AU.init();startMoment(0)}
+function startMoment(i){
+  S.mi=i;S.arrived=false;path=null;const mo=MO();
+  if(mo.from){P.x=mo.from[0]+.5;P.y=mo.from[1]+.5;camX=camY=-1e4}
+  if(i>0){S.m=clamp(S.m-C().rest,0,100);AU.bell()}
+  $('hClock').textContent=mo.time;
+  $('goal').innerHTML=esc(mo.goal).replace(/^(回到|回|去|走到)(.*)$/,'$1 <b>$2</b>');
+  banner(mo.pre?mo.pre:mo.time+'　'+mo.goal);hud()}
+function hud(){
+  const L=LV(),mt=L.meter;$('hWho').textContent='你是'+L.name;$('hMode').textContent=C().name;$('hMName').textContent=mt.name;
+  const w=wordOf(S.m);$('hWord').textContent=w;$('hBar').style.width=Math.max(4,S.m)+'%';$('hBar').style.background=S.m>=85?'var(--warn)':'var(--accent)'}
+function wordOf(v){return LV().meter.words.find(([t])=>v<t)[1]}
+let bannerT=0;function banner(t){const b=$('banner');b.textContent=t;b.classList.add('on');clearTimeout(bannerT);bannerT=setTimeout(()=>b.classList.remove('on'),3600)}
+
+/* ---------- 移動 ---------- */
+function targetTile(){return MO().spot}
+function goTo(tx,ty){const p=bfs(Math.floor(P.x),Math.floor(P.y),tx,ty);if(p){path=p.slice(1);return true}return false}
+function blocked(x,y,r){return !walk(Math.floor(x-r),Math.floor(y-r))||!walk(Math.floor(x+r),Math.floor(y-r))||!walk(Math.floor(x-r),Math.floor(y+r))||!walk(Math.floor(x+r),Math.floor(y+r))}
+function update(dt){
+  if(!S||S.inScene)return;
+  let dx=0,dy=0;if(keys.ArrowLeft||keys.a)dx--;if(keys.ArrowRight||keys.d)dx++;if(keys.ArrowUp||keys.w)dy--;if(keys.ArrowDown||keys.s)dy++;
+  const sp=4.2*dt;P.moving=false;
+  if(dx||dy){path=null;const L=Math.hypot(dx,dy);dx=dx/L*sp;dy=dy/L*sp;if(!blocked(P.x+dx,P.y,.28))P.x+=dx;if(!blocked(P.x,P.y+dy,.28))P.y+=dy;P.moving=true;P.fx=Math.sign(dx)}
+  else if(path&&path.length){const [tx,ty]=path[0],gx=tx+.5,gy=ty+.5,ddx=gx-P.x,ddy=gy-P.y,d=Math.hypot(ddx,ddy);
+    if(d<=sp){P.x=gx;P.y=gy;path.shift()}else{P.x+=ddx/d*sp;P.y+=ddy/d*sp}P.moving=true;P.fx=Math.sign(ddx)}
+  if(P.moving)walkT+=dt*6;
+  // 念頭
+  S.thoughtT-=dt;if(S.thought){S.thought.t-=dt;if(S.thought.t<=0)S.thought=null}
+  if(S.thoughtT<=0){S.thought={text:pick(LV().thoughts[S.mode]),t:3.2};S.thoughtT=C().thoughtEvery+Math.random()*2}
+  // 到達
+  const [sx,sy]=targetTile();if(!S.arrived&&Math.hypot(P.x-(sx+.5),P.y-(sy+.5))<.75){S.arrived=true;path=null;playScene()}
+}
+function draw(){
+  const cv=$('cv'),g=cv.getContext('2d');g.setTransform(1,0,0,1,0,0);g.fillStyle='#c9c2b4';g.fillRect(0,0,cv.width,cv.height);
+  if(!S||!STATIC)return;
+  const WW=MW*TS,WH=MH*TS,vw=cvW/zoom,vh=cvH/zoom;
+  let tx=P.x*TS-vw/2,ty=P.y*TS-vh/2;tx=vw>=WW?(WW-vw)/2:clamp(tx,0,WW-vw);ty=vh>=WH?(WH-vh)/2:clamp(ty,0,WH-vh);
+  if(Math.abs(tx-camX)>400||Math.abs(ty-camY)>400){camX=tx;camY=ty}else{camX+=(tx-camX)*.15;camY+=(ty-camY)*.15}
+  g.setTransform(dpr*zoom,0,0,dpr*zoom,-camX*dpr*zoom,-camY*dpr*zoom);g.drawImage(STATIC,0,0);
+  const now=performance.now()/1000,mo=MO();
+  // 目標
+  if(!S.arrived){const [sx,sy]=mo.spot,pulse=.5+.5*Math.sin(now*5),cx=sx*TS+16,cy=sy*TS+16;
+    g.strokeStyle=`rgba(242,181,58,${.5+.5*pulse})`;g.lineWidth=4;g.beginPath();g.arc(cx,cy,12+pulse*4,0,7);g.stroke();
+    g.fillStyle='#f2b53a';g.font='20px sans-serif';g.textAlign='center';g.fillText('⭐',cx,cy-20-Math.sin(now*4)*3)}
+  // 坐著的同學（教室）
+  const ents=[];
+  const castNames=new Set((mo[S.mode].cast||[]).map(c=>c[0]));
+  SITTERS.forEach(([x,y],i)=>{if(S.lv==='pr'&&S.mi===3&&S.mode==='sim'&&i===0)return;ents.push({y:y+.3,f:()=>{drawPerson(g,x*TS+16,y*TS+10,{shirt:'#f4f4f0',hair:HAIRS[i%4],long:i%3===1});g.fillStyle='#b98a55';g.fillRect(x*TS+3,y*TS+14,TS-6,TS-20)}})});
+  (mo[S.mode].cast||[]).forEach(([n,x,y],i)=>{const c=PEOPLE[n]||'#8a96a0',adult=/老師/.test(n);ents.push({y:y+.5,f:()=>drawPerson(g,x*TS+16,y*TS+16,{shirt:c,pants:adult?'#3b3a44':'#2c3a66',hair:HAIRS[(i+1)%4],long:/子涵|芊芊/.test(n),label:n,labelBg:c})})});
+  ents.push({y:P.y,f:()=>drawPerson(g,P.x*TS,P.y*TS,{moving:P.moving,walk:walkT,shirt:LV().shirt,hair:'#2a211c',long:S.lv==='kq',fx:P.fx,label:'你・'+LV().name,labelBg:LV().color})});
+  ents.sort((a,b)=>a.y-b.y).forEach(e=>e.f());
+  if(S.thought&&!S.inScene)cloud(g,P.x*TS,P.y*TS-6,S.thought.text,LV().color,Math.min(1,S.thought.t*2,(3.2-S.thought.t)*3));
+  // 方向箭頭（目標在畫面外）
+  g.setTransform(dpr,0,0,dpr,0,0);
+  if(!S.arrived){const [sx,sy]=mo.spot,gx=((sx+.5)*TS-camX)*zoom,gy=((sy+.5)*TS-camY)*zoom;
+    if(gx<0||gx>cvW||gy<0||gy>cvH){const px=(P.x*TS-camX)*zoom,py=(P.y*TS-camY)*zoom,a=Math.atan2(gy-py,gx-px);
+      const ax=clamp(px+Math.cos(a)*Math.min(cvW,cvH)*.38,26,cvW-26),ay=clamp(py+Math.sin(a)*Math.min(cvW,cvH)*.38,26,cvH-26);
+      g.save();g.translate(ax,ay);g.rotate(a);g.fillStyle='#f2b53a';g.strokeStyle='#2b2a33';g.lineWidth=2;g.beginPath();g.moveTo(18,0);g.lineTo(-11,-12);g.lineTo(-5,0);g.lineTo(-11,12);g.closePath();g.fill();g.stroke();g.restore()}}
+}
+function resize(){const st=$('stage');if(!st||$('game').hidden)return;const r=st.getBoundingClientRect();dpr=Math.min(2,window.devicePixelRatio||1);cvW=Math.max(1,r.width);cvH=Math.max(1,r.height);
+  const cv=$('cv');cv.width=Math.round(cvW*dpr);cv.height=Math.round(cvH*dpr);
+  const fit=Math.min(cvW/(MW*TS),cvH/(MH*TS));zoom=fit>=.85?fit:clamp(Math.min(cvW/(11*TS),cvH/(9*TS)),.8,1.4)}
+function frame(ts){if(!running)return;const dt=Math.min(.05,(ts-last)/1000||0);last=ts;if(!paused)update(dt);draw();requestAnimationFrame(frame)}
+
+/* ---------- 劇情 ---------- */
+let tapResolve=null;
+function waitTap(label='繼續 ▶'){return new Promise(res=>{const c=$('ctrl');c.innerHTML=`<button class="btn" id="next">${label}</button>`;tapResolve=()=>{tapResolve=null;res()};$('next').onclick=()=>tapResolve&&tapResolve();$('next').focus({preventScroll:true})})}
+function addBeat(b){
+  const log=$('log'),el=document.createElement('div');
+  if(b[0]==='n'){el.className='b n';el.textContent=b[1]}
+  else if(b[0]==='s'){el.className='b s';el.style.setProperty('--c',PEOPLE[b[1]]||'#8a96a0');el.innerHTML=`<span class="nm">${esc(b[1])}</span><span class="say">${esc(b[2])}</span>`}
+  else if(b[0]==='t'){el.className='b t';el.textContent=b[1]}
+  else if(b[0]==='o'){el.className='b o';el.textContent=b[1]}
+  else if(b[0]==='info'){el.className='b info';el.innerHTML=`<b>${esc(b[1])}</b>${esc(b[2])}`}
+  else if(b[0]==='you'){el.className='b you';el.textContent=b[1]}
+  else if(b[0]==='delta'){el.className='b delta';el.textContent=b[1]}
+  log.appendChild(el);el.scrollIntoView({block:'end',behavior:REDUCE?'auto':'smooth'});AU.blip()}
+async function beats(list){for(const b of list){if(b[0]==='if'){if(S.flags[b[1]]){addBeat(b[2]);await waitTap()}continue}addBeat(b);await waitTap()}}
+async function bump(d){
+  if(!d)return;S.m=clamp(S.m+d,0,100);S.peak=Math.max(S.peak,S.m);hud();
+  const w=wordOf(S.m);addBeat(['delta',`${LV().meter.name}${d>0?'升高':'降低'}了・現在：${w}`]);d>0?AU.down():AU.up();
+  if(S.m>=100){await overload()}}
+async function overload(){
+  S.over++;AU.boom();if(!REDUCE){const st=$('sheet');st.animate([{transform:'translateX(-50%)'},{transform:'translateX(calc(-50% - 6px))'},{transform:'translateX(calc(-50% + 6px))'},{transform:'translateX(-50%)'}],{duration:350,iterations:2})}
+  const ov=LV().overload;for(const b of ov.beats){addBeat(b);await waitTap()}
+  if(S.firstOver){S.firstOver=false;addBeat(['info','剛剛發生的事',ov.info]);await waitTap()}
+  S.m=60;hud();addBeat(['delta',`過了好一陣子，你才慢慢平靜一點。${LV().meter.name}：${wordOf(S.m)}`])}
+function askOptions(ops){return new Promise(res=>{const c=$('ctrl');c.innerHTML='<div class="q">你會怎麼做？</div>'+ops.map((o,i)=>`<button class="op" data-i="${i}">${esc(o.l)}</button>`).join('');
+  c.querySelectorAll('.op').forEach(b=>b.onclick=()=>res(ops[+b.dataset.i]));c.querySelector('.op').focus({preventScroll:true})})}
+async function playScene(){
+  S.inScene=true;P.moving=false;const mo=MO(),v=MV();
+  $('shTime').textContent=mo.time;$('shTitle').textContent=mo.title;$('log').innerHTML='';$('ctrl').innerHTML='';
+  $('shade').hidden=false;$('sheet').hidden=false;
+  await beats(v.beats);
+  await bump(Math.round(v.gain*C().gainMult));
+  const op=await askOptions(v.ops);
+  addBeat(['you',op.l]);S.picks.push({id:mo.id,l:op.l});if(op.f)S.flags[op.f]=true;
+  await beats(op.r);
+  await bump(op.d);
+  const lastOne=S.mi===LV().moments.length-1;
+  await waitTap(lastOne?'這一天結束了 ▶':'繼續這一天 ▶');
+  $('sheet').hidden=true;$('shade').hidden=true;S.inScene=false;
+  if(lastOne)finish();else startMoment(S.mi+1)}
+
+/* ---------- 結算 ---------- */
+function finish(){
+  running=false;const L=LV(),run={peak:S.peak,over:S.over,end:S.m,picks:S.picks};
+  SAVE.done[S.lv]=SAVE.done[S.lv]||{};SAVE.done[S.lv][S.mode]=1;SAVE.runs[S.lv]=SAVE.runs[S.lv]||{};SAVE.runs[S.lv][S.mode]={peak:S.peak,over:S.over,end:S.m};store.set(SAVE);
+  const R=SAVE.runs[S.lv],both=R.sim&&R.sup,other=S.lv==='pr'?'kq':'pr',mn=L.meter.name;
+  const W=v=>L.meter.words.find(([t])=>v<t)[1];
+  const cmp=both?`<section><h2>兩次比一比</h2><table><tr><th>同一天</th><th>體驗模式</th><th>支持模式</th></tr>
+    <tr><td>爆發幾次</td><td>${R.sim.over} 次</td><td>${R.sup.over} 次</td></tr>
+    <tr><td>${mn}最高到</td><td>${W(R.sim.peak)}</td><td>${W(R.sup.peak)}</td></tr>
+    <tr><td>一天結束時</td><td>${W(R.sim.end)}</td><td>${W(R.sup.end)}</td></tr></table>
+    <p class="note" style="margin-top:10px">${L.name}還是同一個人。換了座位以外的東西：老師的說法、同學的一句話、班上的規則。</p></section>`:'';
+  const ms=L.moments.map(m=>{const p=run.picks.find(x=>x.id===m.id);return `<li><h4>${esc(m.title)}</h4><p class="did">你選了：${esc(p?p.l:'—')}</p><p>${esc(m.why)}</p><p class="do">${esc(m.peer)}</p></li>`}).join('');
+  const sideRows=L.moments.map(m=>`<tr><td>${esc(m.stuck)}</td><td>${esc(m.other)}</td></tr>`).join('');
+  const sup=S.mode==='sim'?`<section><h2>支持模式會改變什麼</h2><p>同一天再過一次，這一次老師和同學會做這些調整：</p><ul>${L.support.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></section>`:'';
+  $('endBody').innerHTML=`
+    <p style="color:var(--mute);margin:8px 0 0">${esc(C().name)}・${esc(L.title)}</p>
+    <h1 style="font-size:40px">${esc(L.name)}的早上結束了</h1>
+    <div class="stats"><div><b>${run.over} 次</b>爆發</div><div><b>${W(run.peak)}</b>${mn}最高到</div><div><b>${W(run.end)}</b>一天結束時</div></div>
+    ${cmp}
+    <section><h2>今天你遇到的時刻</h2><ul class="moments">${ms}</ul></section>
+    <section><h2>同一件事的另一面</h2><table><tr><th>剛才讓你卡住的</th><th>同一件事的另一面</th></tr>${sideRows}</table></section>
+    ${sup}
+    <div class="reveal"><h2>${esc(LEVELS.pr.name)}和${esc(LEVELS.kq.name)}是誰？</h2>${REVEAL.map(p=>`<p>${p}</p>`).join('')}</div>
+    <section><h2>想一想，和同學聊一聊</h2><ol class="qs">${L.questions.map(q=>`<li>${esc(q)}</li>`).join('')}</ol></section>
+    <div class="row" style="margin:24px 0">
+      ${S.mode==='sim'?`<button class="btn" data-act="sup">用支持模式再過一次 ▶</button>`:`<button class="btn" data-act="sim">再玩一次體驗模式</button>`}
+      <button class="btn alt" data-act="other">換成${esc(LEVELS[other].name)}</button>
+      <button class="btn alt" data-go="start">回首頁</button>
+    </div>`;
+  const lv=S.lv;$('endBody').querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{const a=b.dataset.act;if(a==='other')openIntro(other);else openIntro(lv,a)});
+  bindGo($('endBody'));showScreen('end');$('end').scrollTop=0}
+
+/* ---------- 畫面切換 ---------- */
+function showScreen(id){['start','warm','intro','game','end'].forEach(s=>$(s).hidden=s!==id);if(id!=='game'){running=false;$('sheet').hidden=true;$('shade').hidden=true}if(id==='start')renderStart()}
+function bindGo(root){root.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>showScreen(b.dataset.go))}
+function renderStart(){
+  $('chars').innerHTML=['pr','kq'].map(k=>{const L=LEVELS[k],d=SAVE.done[k]||{};return `<div class="char"><div class="face" style="background:${L.color}">${L.face}</div>
+    <h2>${esc(L.name)}</h2><p class="lvl" style="color:${L.color}">${esc(L.title)}</p><p class="sub">${esc(L.tagline)}</p>
+    <div class="badges"><span class="badge ${d.sim?'on':''}">${d.sim?'✓ ':''}體驗模式</span><span class="badge ${d.sup?'on':''}">${d.sup?'✓ ':''}支持模式</span></div>
+    <button class="btn" style="background:${L.color}" data-lv="${k}">變成${esc(L.name)} ▶</button></div>`}).join('');
+  $('chars').querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>openIntro(b.dataset.lv))}
+function openIntro(lv,mode){
+  const L=LEVELS[lv],d=SAVE.done[lv]||{};mode=mode||(d.sim&&!d.sup?'sup':'sim');document.body.dataset.lv=lv;
+  const body=mode==='sim'?`<h2>${esc(L.title)}</h2>${L.intro.map(p=>`<p>${esc(p)}</p>`).join('')}
+    <div class="meterDemo"><b>${esc(L.meter.name)}</b><div class="bar" style="max-width:220px"><i style="width:30%"></i></div></div>
+    <p>${esc(L.meter.explain)}</p>
+    <p>雲朵框 💭 是你心裡在想的話，別人聽不到。</p>
+    <ul><li>點地圖上的地方就會走過去，或按下面的「走過去」。</li><li>電腦也可以用 <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> 或方向鍵走路。</li><li>走到 ⭐，就會發生今天的事。</li></ul>`
+   :`<h2>同一天，換一種環境</h2><p>你還是${esc(L.name)}，還是同一天。這一次，老師和同學做了一些調整：</p><ul>${L.support.map(s=>`<li>${esc(s)}</li>`).join('')}</ul><p>看看${esc(L.meter.name)}會有什麼不一樣。</p>`;
+  $('introBody').innerHTML=`<button class="btn alt small" data-go="start">← 回首頁</button>
+    <div class="card"><p class="mode" style="display:inline-block">${esc(CFG[mode].name)}</p>${body}</div>
+    <div class="row" style="justify-content:flex-end">${mode==='sim'&&d.sim?`<button class="btn alt" data-m="sup">改玩支持模式</button>`:''}${mode==='sup'?`<button class="btn alt" data-m="sim">改玩體驗模式</button>`:''}<button class="btn" id="goPlay">開始這一天 ▶</button></div>`;
+  bindGo($('introBody'));$('goPlay').onclick=()=>newRun(lv,mode);
+  $('introBody').querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>openIntro(lv,b.dataset.m));
+  showScreen('intro');$('intro').scrollTop=0}
+function renderWarm(k){const w=WARM[k];$('wcloud').style.setProperty('--c',w.c);$('wcloud').innerHTML=w.t.map(t=>`<p>${esc(t)}</p>`).join('');$('wnote').textContent=w.n;
+  $('wtabs').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.w===k?'true':'false'))}
+
+/* ---------- 輸入 ---------- */
+function bindInput(){
+  addEventListener('keydown',e=>{
+    if(!$('sheet').hidden){if((e.key==='Enter'||e.key===' ')&&tapResolve&&document.activeElement&&document.activeElement.id!=='next'){e.preventDefault();tapResolve()}return}
+    if($('game').hidden)return;const k=e.key.length===1?e.key.toLowerCase():e.key;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','w','a','s','d'].includes(k)){keys[k]=true;e.preventDefault()}});
+  addEventListener('keyup',e=>{const k=e.key.length===1?e.key.toLowerCase():e.key;keys[k]=false});
+  addEventListener('blur',()=>keys={});
+  $('cv').addEventListener('pointerdown',e=>{if(!S||S.inScene)return;AU.init();const r=$('cv').getBoundingClientRect(),wx=((e.clientX-r.left)/zoom+camX)/TS,wy=((e.clientY-r.top)/zoom+camY)/TS;
+    let tx=Math.floor(wx),ty=Math.floor(wy);if(!walk(tx,ty)){let best=null,bd=9;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++)if(walk(tx+i,ty+j)){const dd=Math.hypot(i,j);if(dd<bd){bd=dd;best=[tx+i,ty+j]}}if(!best)return;[tx,ty]=best}goTo(tx,ty)});
+  $('walkBtn').onclick=()=>{AU.init();const [x,y]=targetTile();goTo(x,y)};
+  $('sndBtn').onclick=()=>{AU.init();AU.set(!AU.on);$('sndBtn').textContent=AU.on?'🔊':'🔇';$('sndBtn').setAttribute('aria-pressed',AU.on?'true':'false')};
+  $('homeBtn').onclick=()=>showScreen('start');
+  $('toWarm').onclick=()=>{renderWarm('most');showScreen('warm')};
+  $('wtabs').querySelectorAll('button').forEach(b=>b.onclick=()=>renderWarm(b.dataset.w));
+  bindGo(document);addEventListener('resize',resize)}
+
+STATIC=buildStatic();bindInput();$('sndBtn').textContent=AU.on?'🔊':'🔇';showScreen('start');
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{STATIC=buildStatic()});
+/* 測試用：自動跑時把玩家直接放到目標 */
+window.__SC={state:()=>S,warp(){if(!S)return;const [x,y]=targetTile();P.x=x+.5;P.y=y+.5},bfs,walk,LEVELS,MW,MH};
+</script>
+</body>
+</html>
