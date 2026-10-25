@@ -213,6 +213,21 @@ details.mo .do::before{content:"同學可以：";font-weight:700}
 .op.hold small{font-size:12px;color:var(--mute);font-weight:500}
 label.rf{display:flex;gap:10px;align-items:center;font-weight:700;margin-top:12px;cursor:pointer}
 label.rf input{width:22px;height:22px}
+.credit{margin-top:28px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;color:var(--mute);font-size:15px}
+.credit a{text-decoration:none}
+.char.locked{background:#ece7dd;border-style:dashed;color:var(--mute);place-content:center;text-align:center;min-height:260px}
+.char.locked .face{background:#b8b0a3;margin:0 auto}
+.diff{display:grid;gap:12px}
+.dcard{background:var(--paper);border:2px solid var(--line);border-radius:14px;padding:12px 16px;display:grid;gap:8px}
+.dcard>b{font-family:var(--display);font-weight:400;font-size:21px}
+.dpick{margin:0;font-size:14px;color:var(--mute)}
+.dop{border-top:1px dashed var(--line);padding-top:8px;display:grid;gap:4px}
+.dif{font-weight:700;font-size:15px}.dif em{font-style:normal;font-size:12px;margin-left:8px;padding:1px 8px;border-radius:999px;background:var(--soft);color:var(--accent)}
+.dop p{margin:0;font-size:15px;display:grid;grid-template-columns:auto 1fr;gap:8px}
+.dop p i{font-style:normal;font-size:12px;font-weight:700;border-radius:6px;padding:1px 6px;height:fit-content;margin-top:2px}
+.dop p.a{color:var(--warn)}.dop p.a i{background:#fde7e2}
+.dop p.b{color:var(--ok)}.dop p.b i{background:#dff1e7}
+.unlock{background:#fff6dc;border:2px solid var(--gold);border-radius:14px;padding:12px 16px;margin:16px 0;font-weight:700}
 .again{background:var(--soft);border:2px solid var(--accent);border-radius:14px;padding:12px 16px;margin:16px 0}.again b{display:block;color:var(--accent);font-size:18px}
 .warn{background:#fff6dc;border:1px solid #efd38a;border-radius:12px;padding:10px 14px;margin-top:12px;font-size:15px}
 #ears{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
@@ -244,6 +259,7 @@ label.rf input{width:22px;height:22px}
       <button class="btn alt" id="toWarm">先暖身：同一句話</button>
     </div>
     <p class="note" style="margin-top:20px">你會變成四年二班的一位同學，過他的一個早上，一位大約 8 分鐘。<br>角色和情境都是虛構的，不代表班上任何一位同學。</p>
+    <div class="credit">靈感參考自「認識多元的世界」<a class="btn alt small" href="https://chuoneone.github.io/diverse-world/#levels" target="_blank" rel="noopener">去玩「認識多元的世界」↗</a></div>
     <div class="foot">本遊戲由Peiching開發，角色與情境均為虛構</div>
   </div>
 </div>
@@ -624,9 +640,10 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const KEY='same-classroom:v4';
+const KEY='same-classroom:v6';
 const store={get(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}},set(o){try{localStorage.setItem(KEY,JSON.stringify(o))}catch(e){}}};
-let SAVE=store.get();SAVE.done=SAVE.done||{};SAVE.plays=SAVE.plays||{};
+let SAVE=store.get();SAVE.done=SAVE.done||{};SAVE.plays=SAVE.plays||{};SAVE.first=SAVE.first||{};
+const LOCKED=k=>k==='sh'&&!((SAVE.plays.pr||0)>=1&&(SAVE.plays.kq||0)>=1);   // 書恆：玩過品睿和可晴才開啟
 
 /* ---------- 聲音（程式合成，沒有音檔） ---------- */
 const AU=(()=>{let ctx=null,master=null,on=SAVE.snd!==0;
@@ -725,7 +742,7 @@ const HAIRS=['#1b1716','#2a211c','#3b2b22','#151515'];
 const LV=()=>LEVELS[S.lv],MO=()=>LV().moments[S.mi];
 function newRun(lv){
   document.body.dataset.lv=lv;const st=LEVELS[lv].meter.start;
-  S={lv,mi:-1,m:st,peak:st,over:0,firstOver:true,picks:[],track:[],mPeak:st,mOver:0,flags:{},mgLog:[],kind:(SAVE.plays[lv]||0)>=1,kindUsed:0,arrived:false,thought:null,thoughtT:2,inScene:false};
+  S={lv,mi:-1,m:st,peak:st,over:0,firstOver:true,picks:[],track:[],mPeak:st,mOver:0,flags:{},mgLog:[],resp:[],kind:(SAVE.plays[lv]||0)>=1,kindUsed:0,arrived:false,thought:null,thoughtT:2,inScene:false};
   showScreen('game');resize();running=true;paused=false;last=performance.now();requestAnimationFrame(frame);
   AU.init();startMoment(0)}
 function startMoment(i){
@@ -952,6 +969,7 @@ async function playScene(){
   await beats(mo.beats);
   await bump(mo.gain);
   const op0=await askOptions(mo.ops),op=(S.kind&&op0.kind)?(S.kindUsed++,Object.assign({},op0,op0.kind)):op0;
+  S.resp.push({id:mo.id,l:op0.l,peer:peerLine(op.r)});
   addBeat(['you',op.l]);S.picks.push({id:mo.id,l:op.l});if(op.f)S.flags[op.f]=true;
   if(op.mg){S.mgLog.push(op.mg);await MG[op.mg](op.mgp||{})}
   if(op.fxOff)setFx(op.fxOff,0);
@@ -964,6 +982,17 @@ async function playScene(){
   if(lastOne)finish();else startMoment(S.mi+1)}
 
 /* ---------- 結算 ---------- */
+// 從結果裡找同學說的第一句話（不是老師），找不到就用旁白
+function peerLine(r){const s=(r||[]).find(b=>b[0]==='s'&&!/老師/.test(b[1]));if(s)return `${s[1]}：「${s[2]}」`;const n=(r||[]).find(b=>b[0]==='n');return n?n[1]:'—'}
+function diffSection(L,lv){
+  const f=SAVE.first[lv];if(!f)return '';
+  const cards=L.moments.map(m=>{const ops=m.ops.filter(o=>o.kind);if(!ops.length)return '';
+    const p1=f.resp.find(p=>p.id===m.id),p2=S.picks.find(p=>p.id===m.id);
+    return `<div class="dcard"><b>${esc(m.title)}</b>${p1&&p2?`<p class="dpick">第一次你選「${esc(p1.l)}」<br>這一次你選「${esc(p2.l)}」</p>`:''}
+      ${ops.map(o=>`<div class="dop"><span class="dif">如果你：${esc(o.l)}${p2&&p2.l===o.l?'<em>這次你選了這個</em>':''}${p1&&p1.l===o.l?'<em>第一次你選了這個</em>':''}</span>
+        <p class="a"><i>第一次</i>${esc(peerLine(o.r))}</p><p class="b"><i>這一次</i>${esc(peerLine(o.kind.r))}</p></div>`).join('')}</div>`}).join('');
+  return `<section><h2>兩次，同學的反應差在哪裡</h2><p style="margin:0 0 10px">${esc(L.name)}做了一樣的事，同學的回應卻不一樣。第一次爆發 ${f.over} 次，這一次爆發 ${S.over} 次。</p><div class="diff">${cards}</div></section>`}
+
 // 單一數列長條圖：每個時刻心情最高到多少；爆發的時刻用紅色＋文字標示
 function chartSVG(L,track){
   const W=480,H=230,pl=4,pr=4,pt=28,pb=40,n=track.length,bw=(W-pl-pr)/n,ch=H-pt-pb;
@@ -976,8 +1005,8 @@ function chartSVG(L,track){
       <text x="${pl+i*bw+bw/2}" y="${H-pb+24}" text-anchor="middle" font-size="16" fill="#2b2a33">${esc(m.short)}</text></g>`}).join('');
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(L.name)}每個時刻的${esc(L.meter.name)}最高值">${lines}<line x1="${pl}" x2="${W-pr}" y1="${pt+ch}" y2="${pt+ch}" stroke="rgba(43,42,51,.35)"/>${bars}</svg>`}
 function finish(){
-  running=false;const L=LV(),lv=S.lv,others=Object.keys(LEVELS).filter(k=>k!==lv);
-  SAVE.done[lv]=1;SAVE.plays[lv]=(SAVE.plays[lv]||0)+1;store.set(SAVE);const firstTime=SAVE.plays[lv]===1;
+  running=false;const L=LV(),lv=S.lv,wasLocked=LOCKED('sh');
+  SAVE.done[lv]=1;SAVE.plays[lv]=(SAVE.plays[lv]||0)+1;if(SAVE.plays[lv]===1)SAVE.first[lv]={resp:S.resp,over:S.over};store.set(SAVE);const firstTime=SAVE.plays[lv]===1,others=Object.keys(LEVELS).filter(k=>k!==lv&&!LOCKED(k)),justUnlocked=wasLocked&&!LOCKED('sh');
   const hot=S.track.filter(t=>t.over>0).map(t=>L.moments.find(m=>m.id===t.id).short);
   const headline=S.over?`爆發 ${S.over} 次（${hot.join('、')}）`:'今天沒有爆發';
   const ms=L.moments.map(m=>{const p=S.picks.find(x=>x.id===m.id),t=S.track.find(x=>x.id===m.id),w=wordOf(t.peak,L);
@@ -988,7 +1017,9 @@ function finish(){
     <p style="color:var(--mute);margin:8px 0 0">${esc(L.title)}</p>
     <h1 style="font-size:40px">${esc(L.name)}的早上結束了</h1>
     <section><div class="chartBox"><div class="head"><b>${esc(L.meter.name)}，每個時刻最高到哪裡</b><span>${esc(headline)}</span></div>${chartSVG(L,S.track)}</div></section>
-    ${firstTime?`<div class="again"><b>🔁 再過一次${esc(L.name)}的早上</b>這一次，班上的同學會有不一樣的反應。</div>`:`<div class="again"><b>這是第 ${SAVE.plays[lv]} 次過${esc(L.name)}的早上</b>這一次，有些同學的反應不一樣了。同學的一句話，有改變${esc(L.name)}的心情嗎？</div>`}
+    ${justUnlocked?`<div class="unlock">🔓 新角色出現了：書恆。回首頁就可以選他。</div>`:''}
+    ${firstTime?`<div class="again"><b>🔁 再過一次${esc(L.name)}的早上</b>玩第二次，情節可能會不一樣：班上的同學會有不一樣的反應。</div>`:`<div class="again"><b>這是第 ${SAVE.plays[lv]} 次過${esc(L.name)}的早上</b>這一次，有些同學的反應不一樣了。同學的一句話，有改變${esc(L.name)}的心情嗎？</div>`}
+    ${firstTime?'':diffSection(L,lv)}
     <section><h2>今天遇到的時刻</h2><p style="color:var(--mute);margin:0 0 6px;font-size:15px">點開看他為什麼會這樣，以及同學可以怎麼做。</p>${ms}</section>
     <section class="who2"><h2>他們是誰？</h2>
       <p>${esc(ABOUT.who)}</p>
@@ -1017,15 +1048,19 @@ function finish(){
 function showScreen(id){['start','warm','intro','game','end'].forEach(s=>$(s).hidden=s!==id);$('tip').hidden=true;if(id!=='game')clearFx();if(id!=='game'){running=false;$('sheet').hidden=true;$('shade').hidden=true}if(id==='start')renderStart()}
 function bindGo(root){root.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>showScreen(b.dataset.go))}
 function renderStart(){
-  $('chars').innerHTML=Object.keys(LEVELS).map(k=>{const L=LEVELS[k],d=SAVE.done[k];return `<div class="char"><div class="face" style="background:${L.color}">${L.face}</div>
+  $('wtabs').querySelector('[data-w="sh"]').hidden=LOCKED('sh');
+  $('chars').innerHTML=Object.keys(LEVELS).map(k=>{const L=LEVELS[k],d=SAVE.done[k];
+    if(LOCKED(k))return `<div class="char locked"><div class="face">🔒</div><h2>？？？</h2><p class="sub">還有一位同學。<br>品睿和可晴都玩過以後，就會出現。</p><span class="badge">${(SAVE.plays.pr?1:0)+(SAVE.plays.kq?1:0)} / 2</span></div>`;
+    return `<div class="char"><div class="face" style="background:${L.color}">${L.face}</div>
     <h2>${esc(L.name)}</h2><p class="lvl" style="color:${L.color}">${esc(L.title)}</p><p class="sub">${esc(L.tagline)}</p>
     <span class="badge ${d?'on':''}">${d?`✓ 玩過 ${SAVE.plays[k]||1} 次`:'還沒玩'}</span>
     <button class="btn" style="background:${L.color}" data-lv="${k}">變成${esc(L.name)} ▶</button></div>`}).join('');
   $('chars').querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>openIntro(b.dataset.lv))}
 function openIntro(lv){
+  if(LOCKED(lv)){showScreen('start');return}
   const L=LEVELS[lv];document.body.dataset.lv=lv;
   $('introBody').innerHTML=`<button class="btn alt small" data-go="start">← 回首頁</button>
-    ${(SAVE.plays[lv]||0)>=1?`<div class="again"><b>🔁 第 ${(SAVE.plays[lv]||0)+1} 次過這一天</b>你還是${esc(L.name)}，還是同一天。這一次，班上有些同學會不太一樣。</div>`:''}
+    ${(SAVE.plays[lv]||0)>=1?`<div class="again"><b>🔁 第 ${(SAVE.plays[lv]||0)+1} 次過這一天</b>你還是${esc(L.name)}，還是同一天。這一次，班上有些同學會不太一樣。</div>`:`<div class="again"><b>💡 小提醒</b>每位角色都可以玩兩次。第二次玩，情節可能會不一樣喔！</div>`}
     <div class="card"><h2>${esc(L.title)}</h2>${L.intro.map(p=>`<p>${esc(p)}</p>`).join('')}
     <div class="meterDemo"><b>${esc(L.meter.name)}</b><div class="bar" style="max-width:220px"><i style="width:30%;background:${L.color}"></i></div></div>
     <p>${esc(L.meter.explain)}</p>
@@ -1058,7 +1093,7 @@ function bindInput(){
 STATIC=buildStatic();bindInput();$('sndBtn').textContent=AU.on?'🔊':'🔇';showScreen('start');
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{STATIC=buildStatic()});
 /* 測試用：自動跑時把玩家直接放到目標 */
-window.__SC={fast:false,MG,state:()=>S,warp(){if(!S)return;const [x,y]=targetTile();P.x=x+.5;P.y=y+.5},bfs,walk,LEVELS,MW,MH};
+window.__SC={unlock(){SAVE.plays.pr=SAVE.plays.pr||1;SAVE.plays.kq=SAVE.plays.kq||1;store.set(SAVE);renderStart()},fast:false,MG,state:()=>S,warp(){if(!S)return;const [x,y]=targetTile();P.x=x+.5;P.y=y+.5},bfs,walk,LEVELS,MW,MH};
 </script>
 </body>
 </html>
