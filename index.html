@@ -237,10 +237,10 @@ body.ingame #fsCtl{display:none}
 .pts{margin:6px 0 12px;padding-left:22px}.pts li{margin:4px 0}
 .how{margin:6px 0;color:var(--mute);font-size:15px}
 #chain{position:absolute;left:50%;top:62px;transform:translateX(-50%);width:min(420px,calc(100% - 24px));background:#fff;border:2px dashed var(--accent);border-radius:16px;padding:10px 14px;box-shadow:0 6px 18px rgba(0,0,0,.2);display:grid;gap:4px;font-weight:700;color:var(--accent);pointer-events:none;zoom:var(--z,1)}
+#chain .say{color:var(--ink);font-weight:700;border-top:1px dashed var(--line);padding-top:6px;margin-top:2px}
+#fxl .fw.side{opacity:.6;font-weight:700}
 #chain small{color:var(--mute);font-weight:500}
 #chain div{animation:in .35s both}
-.lens{background:var(--soft);border:2px solid var(--accent);border-radius:18px;padding:16px 18px}
-.lens h2{font-size:26px}.lens p{margin:6px 0}.lens .cnt{font-weight:700;color:var(--accent)}
 .again{background:var(--soft);border:2px solid var(--accent);border-radius:14px;padding:12px 16px;margin:16px 0}.again b{display:block;color:var(--accent);font-size:18px}
 .warn{background:#fff6dc;border:1px solid #efd38a;border-radius:12px;padding:10px 14px;margin-top:12px;font-size:15px}
 #ears{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
@@ -373,9 +373,8 @@ pr:{
     '還好這裡不會有人說我怪':['在這裡問奇怪的問題','大家會一起想','因為大家腦袋裡也一直有新問題']
   },
   hint:'點一下品睿冒出來的想法泡泡，看看會發生什麼事。',
-  lens:['遊戲裡，品睿眼前只看得到一小圈。點了他冒出來的想法，一個問題接到另一個問題，視野才會變大。','這是一個比喻，品睿的眼睛沒有問題。','對品睿來說，「想更多、連結更多」就像把燈打開：越能聯想，他越看得清楚、越能專心。如果一直重複已經會的東西，或是被說「不要想那些有的沒的」，他的世界就會縮得很小。'],
   mask:'品睿腦中的點子一直冒出來，就像有些人上課會轉筆、抖腳，讓自己保持清醒。對他來說，要一直有新東西想，才能保持專心；太簡單、一直重複的內容，反而讓他坐不住。他需要的是更有挑戰的題目，和願意聽他把想法說完的人。',
-  traits:{good:['反應快，學一個想到三個','想像力豐富，點子很多','對有興趣的事鑽得很深'],hard:['講話很直，不小心傷到人','不修邊幅，衣服鞋帶顧不到','手寫跟不上腦袋']},
+  traits:{good:['反應快，學一個想到三個','想像力豐富，點子很多','一個問題能連到下一個問題，越聯想越清楚','對有興趣的事鑽得很深'],hard:['講話很直，不小心傷到人','不修邊幅，衣服鞋帶顧不到','手寫跟不上腦袋']},
   moments:[
   {id:'gate',time:'07:45 早上到校',goal:'走到川堂旁邊的同學那裡',from:[34,15],spot:[31,12],title:'扣錯的扣子',short:'校門口',
    cast:[['宥辰',30,11],['同學',32,11],['導護老師',33,17]],gain:10,beats:[
@@ -709,7 +708,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
-const KEY='same-classroom:v10';
+const KEY='same-classroom:v11';
 const store={get(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}},set(o){try{localStorage.setItem(KEY,JSON.stringify(o))}catch(e){}}};
 let SAVE=store.get();SAVE.done=SAVE.done||{};SAVE.plays=SAVE.plays||{};SAVE.first=SAVE.first||{};
 const LOCKED=k=>k==='sh'&&!((SAVE.plays.pr||0)>=1&&(SAVE.plays.kq||0)>=1);   // 書恆：玩過品睿和可晴才開啟
@@ -811,7 +810,7 @@ const HAIRS=['#1b1716','#2a211c','#3b2b22','#151515'];
 const LV=()=>LEVELS[S.lv],MO=()=>LV().moments[S.mi];
 function newRun(lv){
   document.body.dataset.lv=lv;const st=LEVELS[lv].meter.start;
-  S={lv,mi:-1,m:st,peak:st,over:0,firstOver:true,picks:[],track:[],mPeak:st,mOver:0,flags:{},mgLog:[],resp:[],vr:2.6,assoc:0,assocT:0,thoughtRect:null,kind:(SAVE.plays[lv]||0)>=1,kindUsed:0,arrived:false,thought:null,thoughtT:2,inScene:false};
+  S={lv,mi:-1,m:st,peak:st,over:0,firstOver:true,picks:[],track:[],mPeak:st,mOver:0,flags:{},mgLog:[],resp:[],vr:2.6,assoc:0,assocT:0,assocPause:false,thoughtRect:null,kind:(SAVE.plays[lv]||0)>=1,kindUsed:0,arrived:false,thought:null,thoughtT:2,inScene:false};
   showScreen('game');resize();running=true;paused=false;last=performance.now();requestAnimationFrame(frame);
   AU.init();startMoment(0)}
 function startMoment(i){
@@ -829,19 +828,24 @@ function wordOf(v,L){return (L||LV()).meter.words.find(([t])=>v<t)[1]}
 let bannerT=0;function banner(t){const b=$('banner');b.textContent=t;b.classList.add('on');clearTimeout(bannerT);bannerT=setTimeout(()=>b.classList.remove('on'),3600)}
 
 /* ---------- 品睿的聯想 ---------- */
+// 聯想時旁邊冒出的其他念頭：小、淡，只出現在聯想框下方
+function sideThought(t){const w=floatWord(t,'th side');w.style.top=rnd(48,82)+'%';w.style.left=rnd(4,62)+'%';w.style.fontSize=rnd(14,19)+'px'}
 function associate(){
-  const L=LV(),th=S.thought&&S.thought.text,chain=L.chains&&L.chains[th];if(!chain)return;
-  S.assoc++;S.assocT=7;S.thought=null;S.thoughtRect=null;S.thoughtT=7.5;S.m=clamp(S.m-3,0,100);hud();AU.up();
-  const box=$('chain');box.innerHTML=`<small>💭 ${esc(th)}</small>`;box.hidden=false;clearTimeout(box._t);
-  chain.forEach((c,i)=>setTimeout(()=>{const d=document.createElement('div');d.textContent='→ '+c;box.appendChild(d);AU.blip()},FAST()?1:(i+1)*700));
-  box._t=setTimeout(()=>box.hidden=true,FAST()?30:6800)}
+  const L=LV(),th=S.thought&&S.thought.text,chain=L.chains&&L.chains[th];if(!chain||S.assocPause)return;
+  S.assoc++;S.assocPause=true;S.assocT=99;path=null;keys={};P.moving=false;S.thought=null;S.thoughtRect=null;S.m=clamp(S.m-3,0,100);hud();AU.up();
+  $('walkBtn').disabled=true;
+  const box=$('chain'),step=FAST()?2:750;box.innerHTML=`<small>💭 ${esc(th)}</small>`;box.hidden=false;
+  chain.forEach((c,i)=>setTimeout(()=>{const d=document.createElement('div');d.textContent='→ '+c;box.appendChild(d);AU.blip();
+    const others=L.thoughts.filter(t=>t!==th);sideThought(pick(others))},step*(i+1)));
+  setTimeout(()=>{const d=document.createElement('div');d.className='say';d.textContent='品睿：「我的腦袋裡，好多念頭會一直冒出來……」';box.appendChild(d);for(let i=0;i<3;i++)sideThought(pick(L.thoughts))},step*(chain.length+1));
+  setTimeout(()=>{box.hidden=true;FXL().innerHTML='';S.assocPause=false;S.assocT=0;S.thoughtT=6;$('walkBtn').disabled=false},step*(chain.length+1)+(FAST()?2:2200))}
 
 /* ---------- 移動 ---------- */
 function targetTile(){return MO().spot}
 function goTo(tx,ty){const p=bfs(Math.floor(P.x),Math.floor(P.y),tx,ty);if(p){path=p.slice(1);return true}return false}
 function blocked(x,y,r){return !walk(Math.floor(x-r),Math.floor(y-r))||!walk(Math.floor(x+r),Math.floor(y-r))||!walk(Math.floor(x-r),Math.floor(y+r))||!walk(Math.floor(x+r),Math.floor(y+r))}
 function update(dt){
-  if(!S||S.inScene)return;
+  if(!S||S.inScene||S.assocPause)return;
   let dx=0,dy=0;if(keys.ArrowLeft||keys.a)dx--;if(keys.ArrowRight||keys.d)dx++;if(keys.ArrowUp||keys.w)dy--;if(keys.ArrowDown||keys.s)dy++;
   const sp=4.2*dt;P.moving=false;
   if(dx||dy){path=null;const L=Math.hypot(dx,dy);dx=dx/L*sp;dy=dy/L*sp;if(!blocked(P.x+dx,P.y,.28))P.x+=dx;if(!blocked(P.x,P.y+dy,.28))P.y+=dy;P.moving=true;P.fx=Math.sign(dx)}
@@ -871,7 +875,7 @@ function draw(){
   ents.sort((a,b)=>a.y-b.y).forEach(e=>e.f());
   g.setTransform(dpr,0,0,dpr,0,0);
   // 品睿：眼前只看得到一小圈；點想法泡泡聯想時，視野會打開
-  if(S.lv==='pr'&&!S.inScene){S.vr+=((S.assocT>0?10:2.6)-S.vr)*.06;const px=(P.x*TS-camX)*zoom,py=(P.y*TS-camY)*zoom,r=S.vr*TS*zoom;
+  if(S.lv==='pr'&&!S.inScene){S.vr+=((S.assocPause?10:2.6)-S.vr)*(S.assocPause?.08:.05);const px=(P.x*TS-camX)*zoom,py=(P.y*TS-camY)*zoom,r=S.vr*TS*zoom;
     const gr=g.createRadialGradient(px,py,r*.55,px,py,r);gr.addColorStop(0,'rgba(22,24,32,0)');gr.addColorStop(1,'rgba(22,24,32,.86)');g.fillStyle=gr;g.fillRect(0,0,cvW,cvH);
     if(!S.arrived){const [sx,sy]=mo.spot,tx2=((sx+.5)*TS-camX)*zoom,ty2=((sy+.5)*TS-camY)*zoom,pl=.5+.5*Math.sin(now*5);g.strokeStyle=`rgba(242,181,58,${.6+.4*pl})`;g.lineWidth=3;g.beginPath();g.arc(tx2,ty2,(12+pl*4)*zoom,0,7);g.stroke();g.fillStyle='#f2b53a';g.font='18px sans-serif';g.textAlign='center';g.fillText('⭐',tx2,ty2-18*zoom)}}
   S.thoughtRect=null;
@@ -1102,7 +1106,6 @@ function finish(){
     <p style="color:var(--mute);margin:8px 0 0">${esc(L.title)}</p>
     <h1 style="font-size:40px">${esc(L.name)}的早上結束了</h1>
     <section><div class="chartBox"><div class="head"><b>${esc(L.meter.name)}，每個時刻最高到哪裡</b><span>${esc(headline)}</span></div>${chartSVG(L,S.track)}</div></section>
-    ${L.lens?`<section class="lens"><h2>眼前的小圓圈是什麼？</h2><p class="cnt">今天你幫品睿聯想了 ${S.assoc} 次。</p>${L.lens.map(p=>`<p>${esc(p)}</p>`).join('')}</section>`:''}
     ${justUnlocked?`<div class="unlock">🔓 新角色出現了：書恆。回首頁就可以選他。</div>`:''}
     ${firstTime?`<div class="again"><b>🔁 再過一次${esc(L.name)}的早上</b>玩第二次，情節可能會不一樣：班上的同學會有不一樣的反應。</div>`:`<div class="again"><b>這是第 ${SAVE.plays[lv]} 次過${esc(L.name)}的早上</b>這一次，有些同學的反應不一樣了。同學的一句話，有改變${esc(L.name)}的心情嗎？</div>`}
     ${firstTime?'':diffSection(L,lv)}
@@ -1165,11 +1168,11 @@ function bindInput(){
     if($('game').hidden)return;const k=e.key.length===1?e.key.toLowerCase():e.key;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','w','a','s','d'].includes(k)){keys[k]=true;e.preventDefault()}});
   addEventListener('keyup',e=>{const k=e.key.length===1?e.key.toLowerCase():e.key;keys[k]=false});
   addEventListener('blur',()=>keys={});
-  $('cv').addEventListener('pointerdown',e=>{if(!S||S.inScene)return;AU.init();const r=$('cv').getBoundingClientRect();
+  $('cv').addEventListener('pointerdown',e=>{if(!S||S.inScene||S.assocPause)return;AU.init();const r=$('cv').getBoundingClientRect();
     if(S.thoughtRect){const q=S.thoughtRect,cx=e.clientX-r.left,cy=e.clientY-r.top;if(cx>=q.x-8&&cx<=q.x+q.w+8&&cy>=q.y-8&&cy<=q.y+q.h+8){associate();return}}
     const wx=((e.clientX-r.left)/zoom+camX)/TS,wy=((e.clientY-r.top)/zoom+camY)/TS;
     let tx=Math.floor(wx),ty=Math.floor(wy);if(!walk(tx,ty)){let best=null,bd=9;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++)if(walk(tx+i,ty+j)){const dd=Math.hypot(i,j);if(dd<bd){bd=dd;best=[tx+i,ty+j]}}if(!best)return;[tx,ty]=best}goTo(tx,ty)});
-  $('walkBtn').onclick=()=>{AU.init();const [x,y]=targetTile();goTo(x,y)};
+  $('walkBtn').onclick=()=>{if(S&&S.assocPause)return;AU.init();const [x,y]=targetTile();goTo(x,y)};
   $('sndBtn').onclick=()=>{AU.init();AU.set(!AU.on);$('sndBtn').textContent=AU.on?'🔊':'🔇';$('sndBtn').setAttribute('aria-pressed',AU.on?'true':'false')};
   $('homeBtn').onclick=()=>showScreen('start');
   $('toWarm').onclick=()=>{renderWarm('most');showScreen('warm')};
